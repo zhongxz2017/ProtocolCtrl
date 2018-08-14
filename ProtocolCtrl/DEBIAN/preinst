@@ -1,0 +1,14 @@
+#!/bin/sh
+
+onvifLogDir="/etc/aqueti/Log/"
+userGroup=$(cat /etc/hostname | tail -n1)
+echo "$userGroup"
+usrOwner="mantis"
+
+if [ ! -d "$onvifLogDir" ]; then
+	mkdir "$onvifLogDir"
+	chown "$userGroup":"$usrOwner" "$onvifLogDir"
+	chmod -R 777 "$onvifLogDir"
+else
+	echo "Log Dir is exit.need do nothing."
+fi

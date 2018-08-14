@@ -1,0 +1,9 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Type=Application
+Terminal=true
+Name=ProCtrl
+Comment=launch aqueti camera
+Exec=/etc/aqueti/ProtocolCtrl/ProtocolCtrl3.py
+Icon=/etc/aqueti/ProtocolCtrl/ProCtr.jpeg
+Categories=Utility;

@@ -1,0 +1,11 @@
+Package: ProtocolCtrl
+Version: 1.0.2-2018.02.01
+Section: OnvifGB28181
+Priority: optional
+Depends:
+Suggests:
+Architecture: i386
+Installed-Size: 4096
+Maintainer: zhongxz2018
+Provides: aqueti
+Description: Start ONVIF and GB28181 applications. Built by Aqueti.
