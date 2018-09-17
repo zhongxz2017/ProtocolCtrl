@@ -1,0 +1,10 @@
+ProtocolCtrl.py
+缺陷修改记录表/Defect modification records.
+
+zhongxz2018 2018/2/5 
+1.只支持python2，不支持python3
+2.引入第三方库netifaces，系统未安装时，给出提示信息，用户输入密码后，自动安装缺失库
+3.print用小括号括住
+4.未安装GB，不存在GB目录时，主动创建GB目录；未安装mantis时，打印错误日志，不创建目录和文件
+2.增加网卡下拉列表复选框，切换网卡名称后，rip地址会自动变化，用户可手动修改ip
+3.增强稳定性，部分函数增加try except逻辑

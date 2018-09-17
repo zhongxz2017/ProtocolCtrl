@@ -1,13 +1,13 @@
 #!/bin/sh
 
 onvifLogDir="/etc/aqueti/Log/"
-userGroup=$(cat /etc/hostname | tail -n1)
-echo "$userGroup"
-usrOwner="mantis"
+usrName=$(who |awk -F' ' '{print $1}')
+echo "$usrName"
+sudo chown -R "$usrName":"$usrName" "/etc/aqueti"
 
 if [ ! -d "$onvifLogDir" ]; then
 	mkdir "$onvifLogDir"
-	chown "$userGroup":"$usrOwner" "$onvifLogDir"
+	chown "$usrName":"$usrName" "$onvifLogDir"
 	chmod -R 777 "$onvifLogDir"
 else
 	echo "Log Dir is exit.need do nothing."

@@ -5,9 +5,9 @@
 import os
 import py_compile
 
-proCtrlVersion = 'v5.0.7'
+proCtrlVersion = 'v5.1.14'
 pkgDir = 'ProtocolCtrl'
-pkgDes = 'Auto'
+pkgDes = 'Auto-Tour'
 debPkg = pkgDir + '-' + pkgDes + '-' + proCtrlVersion + '.deb'
 
 dpkgCmd = 'dpkg -b ' + pkgDir + '/ ' + debPkg
