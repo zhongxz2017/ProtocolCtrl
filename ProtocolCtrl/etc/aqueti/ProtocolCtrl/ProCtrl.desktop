@@ -2,8 +2,8 @@
 [Desktop Entry]
 Type=Application
 Terminal=true
-Name=ProCtrl
+Name=ONVIF
 Comment=launch aqueti camera
-Exec=/etc/aqueti/ProtocolCtrl/ProtocolCtrl3.py
-Icon=/etc/aqueti/ProtocolCtrl/ProCtr.jpeg
+Exec=/etc/aqueti/ProtocolCtrl/start.sh
+Icon=/etc/aqueti/ProtocolCtrl/logo/ProCtr.jpeg
 Categories=Utility;

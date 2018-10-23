@@ -5,19 +5,20 @@
 import os
 import py_compile
 
-proCtrlVersion = 'v5.1.14'
+proCtrlVersion = 'v2.0.306'
 pkgDir = 'ProtocolCtrl'
-pkgDes = 'Auto-Tour'
-debPkg = pkgDir + '-' + pkgDes + '-' + proCtrlVersion + '.deb'
+pkgComp = 'Aqueti'
+pkgBranch = 'master'
+debPkg = pkgComp + pkgDir + '-' + proCtrlVersion + '_' + pkgBranch + '.deb'
 
 dpkgCmd = 'dpkg -b ' + pkgDir + '/ ' + debPkg
 print (dpkgCmd)
 
 try:
-	py_compile.compile(r'./ProtocolCtrl2.py')
-	cpPyc = 'cp ./ProtocolCtrl2.pyc ./ProtocolCtrl/etc/aqueti/ProtocolCtrl'
-	print cpPyc
-	os.system(cpPyc)
+	py_compile.compile(r'./ProtocolCtrl/etc/aqueti/ProtocolCtrl/ProtocolCtrl2.py')
+	#cpPyc = 'cp ./ProtocolCtrl2.pyc ./ProtocolCtrl/etc/aqueti/ProtocolCtrl'
+	#print cpPyc
+	#os.system(cpPyc)
 	os.system(dpkgCmd)
 	print ('create deb package success.')
 except OSError:
