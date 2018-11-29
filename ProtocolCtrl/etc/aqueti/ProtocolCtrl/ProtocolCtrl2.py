@@ -10,16 +10,38 @@ import tkFileDialog
 import tkSimpleDialog
 import socket, traceback
 
+
 # onvif cmd para define
 onvifDict = {
 	'onvifBin' : 'mantisONVIFServer',
+	'onvifLogoFile' : './logo/onvifLogo.png',
 	'rtspIpAddr' : '',
 	'rtspPort' : '17100',
 	'onvifPort' : '21100',
 	'HW1080P'	: '1080 * 1920',
 	'HW4K'		: '2160 * 3840',
 	'HWCustom'	: 'high * width',
-	'onvifLogoFile' : './logo/onvifLogo.png',
+	'imgQuality' :	'0.5',
+	'EncDef'    : '0',
+	'ResDef'    : '0',
+	'RootDef'   : '0',
+	'RecordDef' : '1'
+	}
+
+modelDict = {
+	'modleLogoFile' : './logo/modelCtrl.png',
+	'DefModelPath'	: '/etc/aqueti/modelgen/',
+	'RenderServer'  : '',
+	'NickName'      : '70',
+	'ModelFile'		: 'model.json',
+	'ModelEdit'		: 'model_edited.json',
+	'CustomModel'	: 'model_custom.json',
+	'ModelPagoda'	: 'model_pagoda.json',
+	'ModelPanoLH'	: 'model_panorama_lh.json',
+	'ModelPanoFH'	: 'model_panorama_fh.json'
+	}
+
+ptzDict = {
 	'tourDefault'	: "2, (0 / 1 / 1.2)",
 	'tourDefault1'	: "11, (0 / 1.2 / 1.2)",
 	'tourDefault2'	: "11, (0 / -1.2 / 0.8)",
@@ -31,22 +53,8 @@ onvifDict = {
 	'PTZOut'	: './logo/ZoomOut.png',
 	'PTZStop'	: './logo/stop.png',
 	'PTZHome'	: './logo/home.png',
-	'Play'		: './logo/play.png'
-	}
-
-# modle
-modelDict = {
-	'modleLogoFile' : './logo/modelCtrl.png',
-	'DefModelPath'	: '/etc/aqueti/modelgen/',
-	'RenderServer'	: 'aqt://Aqueti148',
-	'NickName'		: '233',
-	'ModelFile'		: 'model.json',
-	'ModelEdit'		: 'model_edited.json',
-	'CustomModel'	: 'model_custom.json',
-	'ModelPagoda'	: 'model_pagoda.json',
-	'ModelPanoLH'	: 'model_panorama_lh.json',
-	'ModelPanoFH'	: 'model_panorama_fh.json'
-	}
+	'Play'		: './logo/play.png',
+}
 
 simpleDialogDict = {
 	'pagoda'	: '',
@@ -54,6 +62,7 @@ simpleDialogDict = {
 	'panoFH'	: '',
 	'custom'	: '',
 	'InitModel'	: '恢复模型到初始状态\n1.删除用户定义的模型文件\n2.时间戳信息不会还原\n',
+	'ReinstallOnvif'	: '重新安装ONVIF版本\n覆盖安装工具配套的ONVIF版本\n'
 }
 
 maintainDict = {
@@ -66,6 +75,11 @@ maintainDict = {
 helpDocDict = {
 	'onvifHelp' : './help/接入协议控制(ONVIF)用户指南' + '.docx',
 	}
+
+daemonDict = {
+	'configuration'	:	'/etc/aqueti/daemonConfiguration.json',
+	'protocolCtrl'	:	'/etc/aqueti/ProtocolCtrl/ProtocolCtrl2.py'
+}
 
 LisenceNotice = '''***************************************************************************************
  *
@@ -118,7 +132,7 @@ root = Tk()
 root.resizable(True, False)
 root.attributes("-alpha",0.6)
 #1 title
-root.title('ProtocolCtrl-Auto-Tour v5.１.14')
+root.title('ProtocolCtrl-Auto-Tour v2.0.401A')
 
 #2 meun
 def quit_window():
@@ -145,8 +159,8 @@ def click_about_me():
 	ContactFrame.grid(row=2, column=0, padx=10, pady=5)
 	Label(ContactFrame, text = ContactNotice, wraplength = 720, justify = 'left').grid(row = 0, column = 0, padx=10, pady=5)
 
-def click_start_onvif(sudo, rip, rp, op, enc, res, show, render, nn, record):
-	print "click_start_onvif", sudo, rip, rp, op, enc, res, show, render, nn, record
+def click_start_onvif(sudo, rip, rp, op, enc, res, render, nn, record, qua):
+	print "click_start_onvif", sudo, rip, rp, op, enc, res, render, nn, record, qua
 
 	if sudo:
 		start_onvif_commad = 'sudo ' + onvifDict['onvifBin']
@@ -168,12 +182,6 @@ def click_start_onvif(sudo, rip, rp, op, enc, res, show, render, nn, record):
 		start_onvif_commad += ' -JPEG'
 	else:
 		start_onvif_commad += ' -h265'
-	if '0: normal' == show.strip():
-		start_onvif_commad += ' -Show 0'
-	elif '1: indicate' == show.strip():
-		start_onvif_commad += ' -Show 1'
-	else:
-		start_onvif_commad += ' -Show 2'
 	if onvifDict['HW1080P'] == res.strip():
 		start_onvif_commad += ' -res 1080 1920'
 	elif onvifDict['HW4K'] == res.strip():
@@ -192,6 +200,8 @@ def click_start_onvif(sudo, rip, rp, op, enc, res, show, render, nn, record):
 		start_onvif_commad += '1'
 	else:
 		start_onvif_commad += '0'
+	if '' != qua.strip():
+		start_onvif_commad += ' -qua ' + qua
 	start_onvif_commad += ' &'
 
 	print ('Start onvifServer CMD [' + start_onvif_commad + "]")
@@ -200,7 +210,12 @@ def click_start_onvif(sudo, rip, rp, op, enc, res, show, render, nn, record):
 		print 'Successful START onvifServer on', start_onvif_commad
 	else:
 		print 'START onvifServer Completed'
-def reInstall_onvif():
+
+def reInstall_onvif(time):
+	if '0' != time:
+		if False == popSimpleDialog("NOTICE", simpleDialogDict['ReinstallOnvif']):
+			print "User cancel the action"
+			return
 	print os.system("pwd");
 	rebuild_commad = 'sudo dpkg -r mantis_onvifserver;'
 #	rebuild_commad += 'make ONVIFServer;'
@@ -217,7 +232,7 @@ def selectPath():
 	path.set(path_)
 
 def popSimpleDialog(level, hintStr):
-	userStr = hintStr + "Only Enter [OK] to take effect."
+	userStr = hintStr + "Enter [OK] to take effect."
 	rsp = tkSimpleDialog.askstring(level, userStr)
 	if 'OK' != rsp:
 		return False
@@ -429,16 +444,18 @@ def CtrlRecord(ip, op, action):
 
 def get_host_ip():
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        ip = s.getsockname()[0]
+		if onvifDict['rtspIpAddr'] != '':
+			return onvifDict['rtspIpAddr']
+		s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		s.connect(('8.8.8.8', 80))
+		ip = s.getsockname()[0]
+		s.close()
+		return ip
     except socket.error, e:
 		print  e
 		traceback.print_exc()
 		return '127.0.0.1'
-    finally:
-        s.close()
-    return ip
+
 
 def PTZMotion(cmd, ps, ts, zs, ip, op):
 	try:
@@ -531,15 +548,9 @@ def maintain(tegraTotal, startIp, cmd):
 	except:
 		print 'eeeee'
 
-def daemonRestart(tegraTotal, startIp):
-	try:
-		print tegraTotal, startIp
-	except:
-		print tegraTotal, startIp
-
 def click_maintain():
 	top = Toplevel()
-	top.title("Maintain")
+	top.title("Recovery")
 	DeviceFrame = LabelFrame(top, text = ' Mantis / Pathfinder ', fg = 'green')
 	DeviceFrame.grid(row=0, column=0, padx=10, pady = 10)
 	Label(DeviceFrame, text="Tegra Num", width=12, anchor='e').grid(row=1, column=0, pady=5, sticky=E)
@@ -557,14 +568,167 @@ def click_maintain():
 	Button(DeviceFrame, text = 'Daemon Restart', width = 12, height = 1, bg = 'green', \
 		command=lambda:maintain(defTegra.get(), StartIp.get(), maintainDict['daemonRes'])).grid(row=4,column=1, padx=5, pady=5)
 
+def queryClip(ip, op):
+	try:
+		clientSock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+		clientSock.connect((ip, int(op)))
+		print 'queryClip Connect', ip, op, 'success!'
+		cmdStr = 'Query Device Info: All Clip\r\n';
+		clientSock.sendall(bytes(cmdStr))
+		print 'send cmdStr [', cmdStr, '] success'
+		'''
+		wait rsp
+		'''
+		clientSock.close()
+	except socket.error, e:
+		print "onvifClient start on", ip, op,"failed"
+		print e,int(op)
+		traceback.print_exc()
+
+def click_queryClip():
+	top = Toplevel()
+	top.title("Query")
+	QueryFrame = LabelFrame(top, text = 'Device Info', fg = 'green')
+	QueryFrame.grid(row=0, column=0, padx=10, pady = 10)
+	Label(QueryFrame, text="All Clip List", width=12, anchor='e').grid(row=0, column=0, pady=5, sticky=E)
+	Button(QueryFrame, text = 'Query Clip', width = 12, height = 1, bg = 'green', \
+		command=lambda:queryClip(IP.get(), OP.get())).grid(row=0,column=1, padx=10, pady=5)
+
+def getRenderServerID(filepath):
+	if modelDict['RenderServer'] != '':
+		return modelDict['RenderServer']
+	serverIDName = "system"
+	with open(filepath, "r") as f:
+		for line in f:
+			if serverIDName in line:
+				serverID = line.split(':')[1].strip().strip('\"')
+				return "aqt://" + serverID
+	return modelDict['RenderServer']
+
+def restoreCfg():
+	lineNum = 0
+	with open (daemonDict['protocolCtrl'], "r") as f:
+		lines = f.readlines()
+	with open (daemonDict['protocolCtrl'], "w") as f_w:
+		for line in lines:
+			lineNum += 1
+			if lineNum < 300:
+				if "'rtspIpAddr' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'',")
+					print line
+				if "'rtspPort' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'17100',")
+					print line
+				if "'onvifPort' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'21100',")
+					print line
+				if "'EncDef' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'0',")
+					print line
+				if "'ResDef' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'0',")
+					print line
+				if "'imgQuality' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'0.5',")
+					print line
+				if "'RootDef' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'0',")
+					print line
+				if "'RecordDef' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'1',")
+					print line
+				if "'RenderServer' " in line:
+					value = line.split('\'')[3].strip()
+					line = line.replace(value, '')
+					print line
+				if "'NickName' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'70',")
+					print line
+			f_w.write(line)
+	print "restore cfg to default success"
+
+def saveAsDefultCfg(CB, IP, RP, OP, enc, res, system, NName, Record, qua):
+	print CB, IP, RP, OP, enc, res, system, NName, Record
+	lineNum = 0
+	with open (daemonDict['protocolCtrl'], "r") as f:
+		lines = f.readlines()
+	with open (daemonDict['protocolCtrl'], "w") as f_w:
+		for line in lines:
+			lineNum += 1
+			if lineNum < 300:
+				if "'rtspIpAddr' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'"+ IP + "',")
+					print line
+				if "'rtspPort' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'"+ RP + "',")
+					print line
+				if "'onvifPort' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'"+ OP + "',")
+					print line
+				if "'EncDef' " in line:
+					if 'h264' == enc.strip():
+						encNum = '0'
+					elif 'JPEG' == enc.strip():
+						encNum = '1'
+					else:
+						encNum = '2'
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'"+ encNum + "',")
+					print line
+				if "'ResDef' " in line:
+					if onvifDict['HW1080P'] == res.strip():
+						resNum = '0'
+					elif onvifDict['HW4K'] == res.strip():
+						resNum = '1'
+					else:
+						resNum = '2'
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'"+ resNum + "',")
+					print line
+				if "'imgQuality' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'"+ qua + "',")
+					print line
+				if "'RootDef' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'"+ str(CB) + "',")
+					print line
+				if "'RecordDef' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'"+ str(Record) + "',")
+					print line
+				if "'RenderServer' " in line:
+					value = line.split('\'')[3].strip()
+					line = line.replace(value, system)
+					print line
+				if "'NickName' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'"+ NName + "',")
+					print line
+			f_w.write(line)
+	print "save cur cfg ad default success"	
+
 xmenu = Menu(root)
 submenu = Menu(xmenu, tearoff = 0)
 
-submenu.add_command(label = 'ONVIF user manual', command = click_help_onvif)
-xmenu.add_cascade(label = 'Help', menu = submenu)
+submenu.add_command(label = 'Recovery', command = click_maintain)
+submenu.add_command(label = 'Query', command = click_queryClip)
+xmenu.add_cascade(label = 'Maintain', menu = submenu)
 xmenu.add_command(label = 'Exit', command = quit_window)
 xmenu.add_command(label = 'AboutMe', command = click_about_me)
-xmenu.add_command(label = 'Maintain', command = click_maintain)
+xmenu.add_command(label = 'Help', command = click_help_onvif)
 
 #3 content
 # para
@@ -575,7 +739,7 @@ ParaFrame.grid(row=0, column=0, padx=10, pady=5)
 OnvifFrame = LabelFrame(ParaFrame, text=' Parameter ')
 OnvifFrame.grid(row=0, column=0, padx=10, pady=5, rowspan = 5, sticky=N) 
 onvifParaIndex = 1
-for item in ['Ip Addr  ', 'Rtsp Port  ', 'Onvif Port  ', 'Encode Type  ', 'Res (H*W)  ', 'Img Module  ', 'Render Server  ','Cam Nickname  ']:
+for item in ['Ip Addr  ', 'Rtsp Port  ', 'Onvif Port  ', 'Encode Type  ', 'Res (H*W)  ', 'Img Quality  ',  'System ID  ','Cam Nickname  ']:
 	Label(OnvifFrame, text=item, width = 13, height = 2, anchor='e').grid(row=onvifParaIndex,column=0)
 	onvifParaIndex += 1
 
@@ -583,25 +747,29 @@ defRIP = StringVar(); defRIP.set(get_host_ip()); IP = Entry(OnvifFrame, textvari
 defRP = StringVar(); defRP.set(onvifDict['rtspPort']); RP = Entry(OnvifFrame, textvariable = defRP, width=23); RP.grid(row=2,column=1)
 defOP = StringVar(); defOP.set(onvifDict['onvifPort']); OP = Entry(OnvifFrame, textvariable = defOP, width=23); OP.grid(row=3,column=1)
 defEnc = StringVar(); encType = ttk.Combobox(OnvifFrame, textvariable=defEnc, width=21);
-encType["values"] = ['h264', 'JPEG', 'h265']; encType.current(0); encType.grid(row=4,column=1)
+encType["values"] = ['h264', 'JPEG', 'h265']; encType.current(onvifDict['EncDef']); encType.grid(row=4,column=1)
 defRes = StringVar(); resDefine = ttk.Combobox(OnvifFrame, textvariable=defRes, width=21);
 resDefine["values"] = [onvifDict['HW1080P'], onvifDict['HW4K'], onvifDict['HWCustom']]; 
-resDefine.current(0); resDefine.grid(row=5,column=1);
-defImgShow = StringVar(); showType = ttk.Combobox(OnvifFrame, textvariable=defImgShow, width=21);
-showType["values"] = ['0: normal', '1: indicate', '2: demarcate']; showType.current(0); showType.grid(row=6,column=1)
-defRender = StringVar(); defRender.set(modelDict['RenderServer']);
+resDefine.current(onvifDict['ResDef']); resDefine.grid(row=5,column=1);
+defImgQ = StringVar(); defImgQ.set(onvifDict['imgQuality']);imgQ = Entry(OnvifFrame, textvariable = defImgQ, width=23); imgQ.grid(row=6,column=1)
+defRender = StringVar(); defRender.set(getRenderServerID(daemonDict['configuration']));
 Render = Entry(OnvifFrame, textvariable = defRender, width=23); Render.grid(row=7, column=1)
 defNName = StringVar(); defNName.set(modelDict['NickName']); 
 NName = Entry(OnvifFrame, textvariable = defNName, width=23); NName.grid(row=8,column=1)
-CB = IntVar(); Checkbutton(OnvifFrame, height = 2, text="root",variable = CB).grid(row=9,column=0, sticky=E)
-defRecord = IntVar(); Checkbutton(OnvifFrame, height = 2, text = "Start Record ad Default", variable = defRecord).grid(row=9, column=1, sticky=W)
+CB = IntVar(); CB.set(onvifDict['RootDef']);Checkbutton(OnvifFrame, height = 2, text="root",variable = CB).grid(row=9,column=0, sticky=E)
+defRecord = IntVar(); defRecord.set(onvifDict['RecordDef']);Checkbutton(OnvifFrame, height = 2, text = "Start Record ad Default", variable = defRecord).grid(row=9, column=1, sticky=W)
+Button(OnvifFrame, text = 'Restore CFG', width = 9, height = 1, borderwidth=2, bg = 'green', \
+		command=lambda:restoreCfg()).grid(row=10,column=0)
+Button(OnvifFrame, text = 'Save as default CFG', width = 18, height = 1, bg = 'green',\
+		command=lambda:saveAsDefultCfg(CB.get(), IP.get(), RP.get(), OP.get(), \
+		encType.get(), resDefine.get(), Render.get(), NName.get(), defRecord.get(), imgQ.get())).grid(row=10,column=1,pady=5)
 
 # vlc live
-VideoPlay = PhotoImage(file=onvifDict['Play'])
+VideoPlay = PhotoImage(file=ptzDict['Play'])
 liveFrame = LabelFrame(ParaFrame, text = ' Video Player ')
-liveFrame.grid(row=1, column=0, padx=10, pady=5, sticky=SW)
+liveFrame.grid(row=2, column=1, padx=10, pady=5, sticky=SW)
 Label(liveFrame, text='Rtsp Transport  ', width=13, height=1, anchor='e').grid(row=0, column=0, padx=0,pady=5)
-defTransport = StringVar();Transport=ttk.Combobox(liveFrame, textvariable=defTransport, width=14);
+defTransport = StringVar();Transport=ttk.Combobox(liveFrame, textvariable=defTransport, width=13);
 Transport["values"]=['TCP', 'UDP'];Transport.current(1);Transport.grid(row=0, column=1, padx=2,pady=5)
 Button(liveFrame, image = VideoPlay, width = 41, height = 30, borderwidth=1, bg = 'green',\
 		command=lambda:vlcPlay(IP.get(), RP.get(), Transport.get())).grid(row=0, column=2,padx=5,pady=5)
@@ -610,28 +778,28 @@ Button(liveFrame, image = VideoPlay, width = 41, height = 30, borderwidth=1, bg 
 StartFrame = LabelFrame(ParaFrame, text=' Command ')
 StartFrame.grid(row=0, column=1, padx=10, pady=5, sticky=N)
 onvifLogo = PhotoImage(file=onvifDict['onvifLogoFile'])
-Label(StartFrame, image=onvifLogo).grid(row=0, column=0, columnspan=2)
-Button(StartFrame, text = 'Start ONVIF', width = 12, height = 2, borderwidth=2, bg = 'green', \
-		command=lambda:click_start_onvif(CB.get(), IP.get(), RP.get(), OP.get(), \
-		encType.get(), resDefine.get(), showType.get(), Render.get(), NName.get(), defRecord.get())).grid(row=1,column=0, padx=10, pady=5)
-Button(StartFrame, text = 'ReInstall ONVIF', width = 12, height = 2, bg = 'green', \
-		command=lambda:reInstall_onvif()).grid(row=1,column=1, padx=10, pady=5)
-Button(StartFrame, text = 'Start RECORD', width = 12, height = 2, bg = 'green', \
-		command=lambda:CtrlRecord(IP.get(), OP.get(), 'start')).grid(row=2,column=0, padx=10, pady=5)
-Button(StartFrame, text = 'Stop RECORD', width = 12, height = 2, bg = 'green', \
-		command=lambda:CtrlRecord(IP.get(), OP.get(), 'stop')).grid(row=2,column=1, padx=10, pady=5)
+Label(StartFrame, image=onvifLogo).grid(row=0, column=0, columnspan=3)
+Button(StartFrame, text = 'Start ONVIF', width = 8, height = 2, borderwidth=2, bg = 'green', \
+		command=lambda:click_start_onvif(CB.get(), IP.get(), RP.get(), OP.get(), encType.get(), resDefine.get(), \
+		Render.get(), NName.get(), defRecord.get(), imgQ.get())).grid(row=1,column=0, padx=2, pady=5)
+#Button(StartFrame, text = 'ReInstall ONVIF', width = 12, height = 2, bg = 'green', \
+#		command=lambda:reInstall_onvif('1')).grid(row=1,column=1, padx=10, pady=5)
+Button(StartFrame, text = 'Start REC', width = 8, height = 2, bg = 'green', \
+		command=lambda:CtrlRecord(IP.get(), OP.get(), 'start')).grid(row=1,column=1, padx=2, pady=5)
+Button(StartFrame, text = 'Stop REC', width = 8, height = 2, bg = 'green', \
+		command=lambda:CtrlRecord(IP.get(), OP.get(), 'stop')).grid(row=1,column=2, padx=2, pady=5)
 
 # ptz ctrl 
 PtzFrame = LabelFrame(ParaFrame, text = ' PTZ Ctrl ')
 PtzFrame.grid(row=1, column=1, padx=10, pady=5, sticky=N)
-PTZLeft = PhotoImage(file=onvifDict['PTZLeft'])
-PTZRight = PhotoImage(file=onvifDict['PTZRight'])
-PTZUp = PhotoImage(file=onvifDict['PTZUp'])
-PTZDown = PhotoImage(file=onvifDict['PTZDown'])
-PTZIn = PhotoImage(file=onvifDict['PTZIn'])
-PTZOut = PhotoImage(file=onvifDict['PTZOut'])
-PTZStop = PhotoImage(file=onvifDict['PTZStop'])
-PTZHome = PhotoImage(file=onvifDict['PTZHome'])
+PTZLeft = PhotoImage(file=ptzDict['PTZLeft'])
+PTZRight = PhotoImage(file=ptzDict['PTZRight'])
+PTZUp = PhotoImage(file=ptzDict['PTZUp'])
+PTZDown = PhotoImage(file=ptzDict['PTZDown'])
+PTZIn = PhotoImage(file=ptzDict['PTZIn'])
+PTZOut = PhotoImage(file=ptzDict['PTZOut'])
+PTZStop = PhotoImage(file=ptzDict['PTZStop'])
+PTZHome = PhotoImage(file=ptzDict['PTZHome'])
 Label(PtzFrame, text="P").grid(row=0, column=3, padx=1)
 PS=StringVar();PS.set(50);Scale(PtzFrame, from_=0, to=100, resolution=0.1,variable=PS,orient=HORIZONTAL).grid(row=0, column=4, padx=1)
 Label(PtzFrame, text="T").grid(row=1, column=3, padx=1)
@@ -663,17 +831,17 @@ PresetFrame.grid(row=0, column=0, padx=10, pady=5, sticky=N, rowspan=2)
 Label(PresetFrame, text="Preset Order", width=10, height = 2, anchor = 'c').grid(row=0, column=0)
 Label(PresetFrame, text="Time, Speed(P/T/Z)", width=15, height = 2, anchor = 'c').grid(row=0, column=1)
 Label(PresetFrame, text='Preset_01', width=10, height=1, anchor='c').grid(row=1, column=0, pady=0)
-preset1 = StringVar();preset1.set(onvifDict['tourDefault1']);Entry(PresetFrame, textvariable=preset1, width=14).grid(row=1, column=1)
+preset1 = StringVar();preset1.set(ptzDict['tourDefault1']);Entry(PresetFrame, textvariable=preset1, width=14).grid(row=1, column=1)
 Label(PresetFrame, text='Preset_02', width=10, height=1, anchor='c').grid(row=2, column=0)
-preset2 = StringVar();preset2.set(onvifDict['tourDefault2']);Entry(PresetFrame, textvariable=preset2, width=14).grid(row=2, column=1)
+preset2 = StringVar();preset2.set(ptzDict['tourDefault2']);Entry(PresetFrame, textvariable=preset2, width=14).grid(row=2, column=1)
 Label(PresetFrame, text='Preset_03', width=10, height=1, anchor='c').grid(row=3, column=0)
-preset3 = StringVar();preset3.set(onvifDict['tourDefault']);Entry(PresetFrame, textvariable=preset3, width=14).grid(row=3, column=1)
+preset3 = StringVar();preset3.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset3, width=14).grid(row=3, column=1)
 Label(PresetFrame, text='Preset_04', width=10, height=1, anchor='c').grid(row=4, column=0)
-preset4 = StringVar();preset4.set(onvifDict['tourDefault']);Entry(PresetFrame, textvariable=preset4, width=14).grid(row=4, column=1)
+preset4 = StringVar();preset4.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset4, width=14).grid(row=4, column=1)
 Label(PresetFrame, text='Preset_05', width=10, height=1, anchor='c').grid(row=5, column=0)
-preset5 = StringVar();preset5.set(onvifDict['tourDefault']);Entry(PresetFrame, textvariable=preset5, width=14).grid(row=5, column=1)
+preset5 = StringVar();preset5.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset5, width=14).grid(row=5, column=1)
 Label(PresetFrame, text='Preset_06', width=10, height=1, anchor='c').grid(row=6, column=0)
-preset6 = StringVar();preset6.set(onvifDict['tourDefault']);Entry(PresetFrame, textvariable=preset6, width=14).grid(row=6, column=1)
+preset6 = StringVar();preset6.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset6, width=14).grid(row=6, column=1)
 
 MoveFrame = LabelFrame(TourCtrlFrame, text = ' Continuous ')
 MoveFrame.grid(row=0, column=1, padx=5, pady=5, sticky=N, rowspan=2)
@@ -754,6 +922,10 @@ modleLogo = PhotoImage(file=modelDict['modleLogoFile'])
 Label(HintModelFrame, image=modleLogo).grid(row=0, column=0, padx = 8, pady = 5, columnspan=2)
 Button(HintModelFrame, text = 'Model Calibration', width=15, height=1, bg = 'green', \
 		command=lambda:StartModelEditor()).grid(row=1, column=0, padx=10, pady=5)
+
+reInstall_onvif('0')
+click_start_onvif(CB.get(), IP.get(), RP.get(), OP.get(), encType.get(), resDefine.get(), \
+		Render.get(), NName.get(), defRecord.get(), imgQ.get())
 
 root['menu'] = xmenu
 

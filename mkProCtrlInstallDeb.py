@@ -5,7 +5,7 @@
 import os
 import py_compile
 
-proCtrlVersion = 'v2.0.306'
+proCtrlVersion = 'v2.0.401'
 pkgDir = 'ProtocolCtrl'
 pkgComp = 'Aqueti'
 pkgBranch = 'master'
