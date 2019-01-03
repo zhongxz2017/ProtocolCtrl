@@ -9,11 +9,18 @@ import webbrowser
 import tkFileDialog
 import tkSimpleDialog
 import socket, traceback
+import datetime
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 
 # onvif cmd para define
 onvifDict = {
 	'onvifBin' : 'mantisONVIFServer',
+	'logDir'	: '/var/tmp/aqueti/',
+	'onvifLog'	: 'Log/',
+	'runLog'	: 'onvifRun',
 	'onvifLogoFile' : './logo/onvifLogo.png',
 	'rtspIpAddr' : '',
 	'rtspPort' : '17100',
@@ -32,7 +39,7 @@ modelDict = {
 	'modleLogoFile' : './logo/modelCtrl.png',
 	'DefModelPath'	: '/etc/aqueti/modelgen/',
 	'RenderServer'  : '',
-	'NickName'      : '70',
+	'NickName'      : '233',
 	'ModelFile'		: 'model.json',
 	'ModelEdit'		: 'model_edited.json',
 	'CustomModel'	: 'model_custom.json',
@@ -73,12 +80,37 @@ maintainDict = {
 }
 
 helpDocDict = {
-	'onvifHelp' : './help/接入协议控制(ONVIF)用户指南' + '.docx',
+	'onvifHelp' : './help/ONVIFUserManual.pdf' + '.docx',
 	}
 
 daemonDict = {
 	'configuration'	:	'/etc/aqueti/daemonConfiguration.json',
 	'protocolCtrl'	:	'/etc/aqueti/ProtocolCtrl/ProtocolCtrl2.py'
+}
+
+logDirDict = {
+	'logInfo'		:	'~/LogInfo',
+	'mantisInfo'	:	'~/LogInfo/mantis',
+	'renderInfo'	:	'~/LogInfo/render',
+	'onvifInfo'		:	'~/LogInfo/onvif'
+}
+
+mantisLogDict = {
+	'syslog'	: 	'/var/log/syslog',
+	'acosd.err'	:	'/var/log/acosd.err',
+	'acosd.out'	:	'/var/log/acosd.out'
+}
+
+renderLogDict = {
+	'syslog'	:	'/var/log/syslog*',
+	'AquetiDaemon'	:	'/var/log/aqueti/AquetiDaemon.*',
+	'mongodb'	:	'/var/log/mongodb/mongod.log',
+	'model.json'	:	'/var/tmp/aqueti/modelgen/model.json'
+}
+
+onvifLogDict = {
+	'runLog'	:	'/var/tmp/aqueti/Log',
+	'xmlCfg'	:	'/var/tmp/aqueti/*.xml'
 }
 
 LisenceNotice = '''***************************************************************************************
@@ -126,13 +158,25 @@ ContactNotice = '''*************************************************************
  *
 ****************************************************************************************'''
 
-
 root = Tk()
 #root.geometry('450x400')
 root.resizable(True, False)
 root.attributes("-alpha",0.6)
 #1 title
-root.title('ProtocolCtrl-Auto-Tour v2.0.401A')
+root.title('ProtocolCtrl-Auto-Tour v2.0.50301')
+
+# photo define
+modleLogo = PhotoImage(file=modelDict['modleLogoFile'])
+VideoPlay = PhotoImage(file=ptzDict['Play'])
+onvifLogo = PhotoImage(file=onvifDict['onvifLogoFile'])
+PTZLeft = PhotoImage(file=ptzDict['PTZLeft'])
+PTZRight = PhotoImage(file=ptzDict['PTZRight'])
+PTZUp = PhotoImage(file=ptzDict['PTZUp'])
+PTZDown = PhotoImage(file=ptzDict['PTZDown'])
+PTZIn = PhotoImage(file=ptzDict['PTZIn'])
+PTZOut = PhotoImage(file=ptzDict['PTZOut'])
+PTZStop = PhotoImage(file=ptzDict['PTZStop'])
+PTZHome = PhotoImage(file=ptzDict['PTZHome'])
 
 #2 meun
 def quit_window():
@@ -202,6 +246,10 @@ def click_start_onvif(sudo, rip, rp, op, enc, res, render, nn, record, qua):
 		start_onvif_commad += '0'
 	if '' != qua.strip():
 		start_onvif_commad += ' -qua ' + qua
+	start_onvif_commad += '| tee ' 
+	start_onvif_commad += onvifDict['logDir'] + onvifDict["onvifLog"] +  onvifDict["runLog"]
+	start_onvif_commad += modelDict["NickName"] + '_'
+	start_onvif_commad += datetime.datetime.now().strftime('%Y%m%d.%H:%M:%S')
 	start_onvif_commad += ' &'
 
 	print ('Start onvifServer CMD [' + start_onvif_commad + "]")
@@ -456,7 +504,6 @@ def get_host_ip():
 		traceback.print_exc()
 		return '127.0.0.1'
 
-
 def PTZMotion(cmd, ps, ts, zs, ip, op):
 	try:
 		panSpeed = 0
@@ -492,6 +539,28 @@ def PTZMotion(cmd, ps, ts, zs, ip, op):
 		print "onvifClient start on", ip, op,"failed"
 		print e,int(op)
 		traceback.print_exc()
+
+def SetHomePosition(ip, op, flag, pp, tp, zp):
+	try:
+		print ip, op, flag, pp, tp, zp
+		clientSock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+		clientSock.connect((ip, int(op)))
+		print 'SetHomePosition Connect', ip, op, 'success!'
+		cmdStr = 'Set Home Position '
+		if 0 == flag:
+			cmdStr += 'Specify [' + str(pp) + ' ' + str(tp) + ' ' + str(zp) + ']'
+		elif 1 == flag:
+			cmdStr += 'Current'
+		elif 2 == flag:
+			cmdStr += 'Reset'
+		print cmdStr
+		clientSock.sendall(bytes(cmdStr))
+		print 'send cmdStr [', cmdStr, '] success'
+		clientSock.close()
+	except socket.error, e:
+		print "Set Home Position on", ip, op, "failed"
+		print e, int(op)
+		traceback.print_exec()
 
 def vlcPlay(ipAddr, rtpPort, transType):
 	try:
@@ -550,14 +619,14 @@ def maintain(tegraTotal, startIp, cmd):
 
 def click_maintain():
 	top = Toplevel()
-	top.title("Recovery")
+	top.title("Check Mantis Service")
 	DeviceFrame = LabelFrame(top, text = ' Mantis / Pathfinder ', fg = 'green')
 	DeviceFrame.grid(row=0, column=0, padx=10, pady = 10)
 	Label(DeviceFrame, text="Tegra Num", width=12, anchor='e').grid(row=1, column=0, pady=5, sticky=E)
 	defTegra = StringVar(); defTegra.set(3);
 	TegraTotal = Entry(DeviceFrame, textvariable=defTegra, width=14).grid(row=1, column=1, pady=5)
 	Label(DeviceFrame, text="Tegra start IP", width=12, anchor='e').grid(row=2, column=0, pady=5, sticky=E)
-	defStartIp = StringVar(); defStartIp.set(get_host_ip());
+	defStartIp = StringVar(); defStartIp.set('10.0.1.1');
 	StartIp = Entry(DeviceFrame, textvariable=defStartIp, width=14);StartIp.grid(row=2, column=1, pady=5)
 	Button(DeviceFrame, text='NTP Check', width=12, height=1, bg='green',\
 		command=lambda:maintain(defTegra.get(), StartIp.get(), maintainDict['ntpCheck'])).grid(row=3, column=0,padx=5, pady=5)
@@ -590,7 +659,7 @@ def click_queryClip():
 	top.title("Query")
 	QueryFrame = LabelFrame(top, text = 'Device Info', fg = 'green')
 	QueryFrame.grid(row=0, column=0, padx=10, pady = 10)
-	Label(QueryFrame, text="All Clip List", width=12, anchor='e').grid(row=0, column=0, pady=5, sticky=E)
+	Label(QueryFrame, text="Clip List", width=12, anchor='e').grid(row=0, column=0, pady=5, sticky=E)
 	Button(QueryFrame, text = 'Query Clip', width = 12, height = 1, bg = 'green', \
 		command=lambda:queryClip(IP.get(), OP.get())).grid(row=0,column=1, padx=10, pady=5)
 
@@ -601,7 +670,7 @@ def getRenderServerID(filepath):
 	with open(filepath, "r") as f:
 		for line in f:
 			if serverIDName in line:
-				serverID = line.split(':')[1].strip().strip('\"')
+				serverID = line.split('\"')[3].strip()
 				return "aqt://" + serverID
 	return modelDict['RenderServer']
 
@@ -646,8 +715,8 @@ def restoreCfg():
 					line = line.replace(value, "'1',")
 					print line
 				if "'RenderServer' " in line:
-					value = line.split('\'')[3].strip()
-					line = line.replace(value, '')
+					value = line.split(':')[0]
+					line = value + ": '',\n"
 					print line
 				if "'NickName' " in line:
 					value = line.split(':')[1].strip()
@@ -710,8 +779,8 @@ def saveAsDefultCfg(CB, IP, RP, OP, enc, res, system, NName, Record, qua):
 					line = line.replace(value, "'"+ str(Record) + "',")
 					print line
 				if "'RenderServer' " in line:
-					value = line.split('\'')[3].strip()
-					line = line.replace(value, system)
+					value = line.split(':')[0]
+					line = value + ": '" + system + "',\n"
 					print line
 				if "'NickName' " in line:
 					value = line.split(':')[1].strip()
@@ -720,15 +789,420 @@ def saveAsDefultCfg(CB, IP, RP, OP, enc, res, system, NName, Record, qua):
 			f_w.write(line)
 	print "save cur cfg ad default success"	
 
-xmenu = Menu(root)
-submenu = Menu(xmenu, tearoff = 0)
+def click_check_network():
+	try:
+		sysinfoCmd = "gnome-system-monitor &"
+		os.system(sysinfoCmd)
+	except OSError:
+		print "open system monitor tool failed"
 
-submenu.add_command(label = 'Recovery', command = click_maintain)
-submenu.add_command(label = 'Query', command = click_queryClip)
-xmenu.add_cascade(label = 'Maintain', menu = submenu)
+def maintain(tegraTotal, startIp, cmd):
+	try:
+		cmdStr = "ssh nvidia@" + startIp + " \"" + cmd + "\""
+		print cmdStr
+		os.system(cmdStr)
+		ipRange = startIp.split('.')
+		ipNum = int(ipRange[3])
+		ipTotal = int(tegraTotal)
+		while ipTotal > 1:
+			ipNum += 1
+			ip = ipRange[0] + '.' + ipRange[1] + '.' + ipRange[2] + '.' + str(ipNum)
+			cmdStr = "ssh nvidia@" + ip + " \"" + cmd + "\""
+			print cmdStr
+			os.system(cmdStr)
+			ipTotal -= 1
+	except OSError:
+		print "maintain failed!"
+	except:
+		print 'eeeee'
+
+def cpMantisLogToRender(tegraTotal, startIp, logName, logDir):
+	try:
+		ipRange = startIp.split('.')
+		ipS = int(ipRange[3])
+		ipTotal = int(tegraTotal)
+		logFile = logDir + '/' + logName.split('/')[3]
+		while ipTotal >= 1:
+			ip = ipRange[0] + '.' + ipRange[1] + '.' + ipRange[2] + '.' + str(ipS)
+			cmdStr = "scp nvidia@" + ip + ':' + logName + ' ' + logDir
+			logFileN = logFile + '_' + ip
+			cmdStr += "; mv " + logFile + ' ' + logFileN
+			print cmdStr
+			os.system(cmdStr)
+			ipS += 1
+			ipTotal -= 1
+	except OSError:
+		print "cpMantisLogToRender failed!", tegraTotal, startIp, logName, logDir
+
+def tarLogwithTime(logDir):
+	try:
+		tarName = '~/Desktop/log_'
+		tarName += datetime.datetime.now().strftime('%Y%m%d.%H:%M:%S')
+		tarName += '.tar.gz'
+		colCmd = "tar -zcvf "
+		colCmd += tarName + ' '
+		colCmd += logDir
+		print colCmd
+		os.system(colCmd)
+		print "tarLogwithTime success"
+	except OSError:
+		print "tarLogwithTime failed"
+
+def colRenderLog(logDir):
+	try:
+		# /var/log/syslog* renderLogDict["syslog"]
+		logCmd = "cp " + renderLogDict["syslog"] + ' ' + logDir
+		os.system(logCmd)
+		#  renderLogDict["AquetiDaemon"]
+		logCmd = "cp " + renderLogDict["AquetiDaemon"] + ' ' + logDir
+		os.system(logCmd)
+		#  renderLogDict["mongodb"]
+		logCmd = "cp " + renderLogDict["mongodb"] + ' ' + logDir
+		os.system(logCmd)
+		#  renderLogDict["model.json"]
+		logCmd = "cp " + renderLogDict["model.json"] + ' ' + logDir
+		os.system(logCmd)
+	except OSError:
+		print "colRenderLog failed!", logDir
+
+def colOnvifLog(logDir):
+	try:
+		logCmd = "cp -rf " + onvifLogDict["runLog"] + ' ' + logDir
+		os.system(logCmd)
+		logCmd = "cp " + onvifLogDict["xmlCfg"] + ' ' + logDir
+		os.system(logCmd)
+	except OSError:
+		print "colOnvifLog failed!", logDir
+
+def newReadme(bT, envT, vT, sT, extT, rT, UN, UT, UM):
+	try:
+		readmeFile = logDirDict['logInfo'] + "/readme"
+		readmeFile += datetime.datetime.now().strftime('%Y%m%d.%H:%M:%S') + ".txt"
+		dirCmd = 'touch ' + readmeFile
+		os.system(dirCmd)
+		readmeStr = "【问题详细记录单】"
+		echoCmd = "echo " + readmeStr + " > " + readmeFile
+		os.system(echoCmd)
+		readmeStr = "【记录时间】\n	" + datetime.datetime.now().strftime('%Y%m%d.%H:%M:%S')
+		echoCmd = "echo \"" + readmeStr + "\" >> " + readmeFile
+		os.system(echoCmd)
+		readmeStr = "【问题发现人联系方式】\n	" + "姓名: " + UN + "\n	电话:　" + UT + "\n	邮箱: " + UM
+		echoCmd = "echo \"" + readmeStr + "\" >> " + readmeFile
+		os.system(echoCmd)
+		readmeStr = "【简要描述】\n	" + bT
+		echoCmd = "echo \"" + readmeStr + "\" >> " + readmeFile
+		os.system(echoCmd)
+		readmeStr = "【详细描述】"
+		echoCmd = "echo \"" + readmeStr + "\" >> " + readmeFile
+		os.system(echoCmd)
+		readmeStr = "【环境信息 (软硬件和配套操作系统信息)】\n	" + envT
+		echoCmd = "echo \"" + readmeStr + "\" >> " + readmeFile
+		os.system(echoCmd)
+		readmeStr = "【版本信息 (配套版本和被测软件的版本信息)】\n	" + vT
+		echoCmd = "echo \"" + readmeStr + "\" >> " + readmeFile
+		os.system(echoCmd)
+		readmeStr = "【重现步骤 (重现问题的详细步骤)】\n	" + sT
+		echoCmd = "echo \"" + readmeStr + "\" >> " + readmeFile
+		os.system(echoCmd)
+		readmeStr = "【预期测试结果】\n	" + extT
+		echoCmd = "echo \"" + readmeStr + "\" >> " + readmeFile
+		os.system(echoCmd)
+		readmeStr = "【实际测试结果】\n	" + rT
+		echoCmd = "echo \"" + readmeStr + "\" >> " + readmeFile
+		os.system(echoCmd)
+		readmeStr = "【相关日志】\n	详见附件"
+		echoCmd = "echo \"" + readmeStr + "\" >> " + readmeFile
+		os.system(echoCmd)
+	except OSError:
+		print "newReadme ", readmeFile, " failed"
+
+def collection_oneKey(mF, tip, tn, rF, oF, bT, envT, vT, sT, extT, rT, UN, UT, UM):
+	print "one key collection", mF, tip, tn, rF, oF, bT, envT, vT, sT, extT, rT, UN, UT, UM
+	try:
+		dirCmd = 'mkdir ' + logDirDict['logInfo']
+		os.system(dirCmd)
+		dirCmd = 'mkdir ' + logDirDict['mantisInfo']
+		os.system(dirCmd)
+		dirCmd = 'mkdir ' + logDirDict['renderInfo']
+		os.system(dirCmd)
+		dirCmd = 'mkdir ' + logDirDict['onvifInfo']
+		os.system(dirCmd)
+		# mantis
+		if mF:
+			cpMantisLogToRender(tn, tip, mantisLogDict['syslog'], logDirDict['mantisInfo'])
+			cpMantisLogToRender(tn, tip, mantisLogDict['acosd.err'], logDirDict['mantisInfo'])
+			cpMantisLogToRender(tn, tip, mantisLogDict['acosd.out'], logDirDict['mantisInfo'])
+			print "collection mantis Info complete."
+		else:
+			print "Donot need collection mantis Info."
+		# render
+		if rF:
+			colRenderLog(logDirDict['renderInfo'])
+			print "collection render Info complete."
+		else:
+			print "Donot need collection render Info."
+		# onvif
+		if oF:
+			colOnvifLog(logDirDict["onvifInfo"])
+			print "collection onvif Info complete."
+		else:
+			print "Donot need collection onvif Info."
+		# readme
+		newReadme(bT, envT, vT, sT, extT, rT, UN, UT, UM)
+		# tar and cleanup
+		tarLogwithTime(logDirDict["logInfo"])
+		dirCmd = 'rm -rf ' + logDirDict['logInfo']
+		os.system(dirCmd)
+		# 邮件发送 待补充
+	except OSError:
+		print "collection_oneKey information failed"
+		dirCmd = 'rm -rf ' + logDirDict['logInfo']
+		os.system(dirCmd)
+			
+def testText(t1, t2):
+	print t1, t2
+
+def infomation_col():
+	top = Toplevel()
+	top.title("　故障信息收集　")
+	# ### 简要描述
+	BrifF = LabelFrame(top, text = " 简要描述 (出现了什么问题，错误是什么) ", fg = 'green')
+	BrifF.grid(row=0, column=0, padx=10, pady=5, sticky=NW)
+	BrifT = Text(BrifF, width=40, height=2);BrifT.grid(row=0, column=0, padx=10, pady=5)
+	# ### 详细信息
+	DesF = LabelFrame(top, text = "　详细描述　", fg = 'green')
+	DesF.grid(row = 1, column = 0, padx=10, pady = 5, sticky = NW)
+	# 环境信息 (软硬件和配套操作系统信息)
+	envF = LabelFrame(DesF, text = " 环境信息 (软硬件和配套操作系统信息) ")
+	envF.grid(row=0, column=0, padx=10, pady=5)
+	envI = Text(envF, width = 40, height=2);
+	envI.grid(row=0, column=0, padx=5, pady=5)
+	# 版本信息 (配套版本的版本信息，被测软件的版本信息)
+	verF = LabelFrame(DesF, text = " 版本信息 (配套版本和被测软件的版本信息) ")
+	verF.grid(row=1, column=0, padx=10, pady=5)
+	verI = Text(verF, width = 40, height=2);
+	verI.grid(row=0, column=0, padx=5, pady=5)
+	# 重现步骤 ()
+	setpF = LabelFrame(DesF, text = " 重现步骤 (重现问题的详细步骤) ")
+	setpF.grid(row=2, column=0, padx=10, pady=5)
+	setpI = Text(setpF, width = 40, height=4);
+	setpI.grid(row=0, column=0, padx=5, pady=5)
+	# 预期测试结果 ()
+	expF = LabelFrame(DesF, text = " 预期测试结果 ")
+	expF.grid(row=3, column=0, padx=10, pady=5)
+	expI = Text(expF, width = 40, height=1);
+	expI.grid(row=0, column=0, padx=5, pady=5)
+	# 实际测试结果 ()
+	resuF = LabelFrame(DesF, text = " 实际测试结果 ")
+	resuF.grid(row=4, column=0, padx=10, pady=5)
+	resuI = Text(resuF, width = 40, height=1);
+	resuI.grid(row=0, column=0, padx=5, pady=5)
+	# 相关日志 ()
+	LogF = LabelFrame(DesF, text = ' 相关日志 ', fg = 'green')
+	LogF.grid(row=5, column=0, padx=10, pady=5, sticky=NW)
+	# 1. 机头
+	mantisLogF = LabelFrame(LogF, text = ' 机头 ')
+	mantisLogF.grid(row=0, column=0, padx=10, pady=5, sticky=NW)
+	Label(mantisLogF, text = " 收集 ").grid(row=0, column=0,padx=5)
+	mantisFlag = IntVar(); mantisFlag.set('1');
+	Checkbutton(mantisLogF, variable = mantisFlag, width = 3).grid(row=1, column=0,padx=5,pady=5)
+	Label(mantisLogF, text = " Tegra起始IP ").grid(row=0, column=1,padx=5)
+	tegraIp = StringVar(); tegraIp.set('10.69.2.27');
+	TIP = Entry(mantisLogF, textvariable = tegraIp, width=14); TIP.grid(row=1, column=1, padx=5,pady=5)
+	Label(mantisLogF, text = " Tegra数量 ").grid(row=0, column=2,padx=5)
+	tegraNum = StringVar(); tegraNum.set('3'); 
+	TNum = Entry(mantisLogF, textvariable = tegraNum, width=8);	TNum.grid(row=1, column=2, padx=5,pady=5)
+	# 2. render
+	renderLogF = LabelFrame(LogF, text = ' 服务器 ')
+	renderLogF.grid(row=1, column=0, padx=10, pady=5, sticky=NW)
+	Label(renderLogF, text = ' 收集 ').grid(row=0, column=0, padx=5, pady=5)
+	renderFlag = IntVar(); renderFlag.set('1');
+	Checkbutton(renderLogF, variable = renderFlag, width=3).grid(row=0, column=1, padx=5)
+	# 3. onvif
+	onvifLogF = LabelFrame(LogF, text = ' ONVIF ')
+	onvifLogF.grid(row=2, column=0, padx=10, pady=5, sticky=NW)
+	Label(onvifLogF, text = ' 收集 ').grid(row=0, column=0, padx=5, pady=5)
+	onvifFlag = IntVar(); onvifFlag.set('1');
+	Checkbutton(onvifLogF, variable = onvifFlag, width = 3).grid(row=0, column=1, padx=5)
+	recF = LabelFrame(top, text = "")
+	# 联系方式
+	contactF = LabelFrame(top, text = " 用户联系方式(研发可以直接联系) ", fg= 'green')
+	contactF.grid(row=3,column=0, padx=10, pady=5, sticky=NW)
+	Label(contactF, text = " 姓名　").grid(row=0, column=0, padx=5, pady=5)
+	userName = StringVar(); UN = Entry(contactF, textvariable=userName, width=31);
+	UN.grid(row=0, column=1, padx=5, pady=5)
+	Label(contactF, text = " 电话　").grid(row=1, column=0, padx=5, pady=5)
+	userTel = StringVar(); UT = Entry(contactF, textvariable=userTel, width=31);
+	UT.grid(row=1, column=1, padx=5, pady=5)
+	Label(contactF, text = " 邮箱　").grid(row=2, column=0, padx=5, pady=5)
+	UM = Text(contactF, width = 36, height=1);
+	UM.grid(row=2, column=1, padx=5, pady=5)
+	Button(top, width=20, height=2, text=' 生成故障信息包 ', bg='green',
+		command=lambda:collection_oneKey(mantisFlag.get(), tegraIp.get(), tegraNum.get(), renderFlag.get(), onvifFlag.get(),
+		BrifT.get("0.0","end"), envI.get("0.0","end"), verI.get("0.0","end"), 
+		setpI.get("0.0","end"), expI.get("0.0","end"), resuI.get("0.0","end"),
+		UN.get(), UT.get(), UM.get("0.0","end"))
+		).grid(row=4, column=0, padx=10, pady=5)
+
+def click_ptz_ctrl():
+	print "need add click_ptz_ctrl logical"
+	top = Toplevel()
+	top.title("PTZ")
+	# ptz ctrl 
+	PtzFrame = LabelFrame(top, text = ' PTZ Ctrl ', fg = 'green')
+	PtzFrame.grid(row=0, column=0, padx=10, pady=5, sticky=NW)
+	Label(PtzFrame, text="Move Speed", fg='green').grid(row=0, column=3, columnspan=2,padx=1,sticky=S)
+	Label(PtzFrame, text="P").grid(row=1, column=3, padx=1)
+	PS=StringVar();PS.set(50);Scale(PtzFrame, from_=0, to=100, resolution=0.1,variable=PS,orient=HORIZONTAL).grid(row=1, column=4, padx=1)
+	Label(PtzFrame, text="T").grid(row=2, column=3, padx=1)
+	TS=StringVar();TS.set(50);Scale(PtzFrame, from_=0, to=100, resolution=0.1,variable=TS,orient=HORIZONTAL).grid(row=2, column=4, padx=1)
+	Label(PtzFrame, text="Z", width=2).grid(row=3, column=3, padx=1)
+	ZS=StringVar();ZS.set(50);Scale(PtzFrame, from_=0, to=100, resolution=0.1,variable=ZS,orient=HORIZONTAL).grid(row=3, column=4, padx=1)
+	Button(PtzFrame, width = 40, height = 40, image = PTZLeft, command=lambda:PTZMotion('Pan Left', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
+		).grid(row=1,column=0, padx=2, rowspan = 2)
+	Button(PtzFrame, width = 40, height = 40, image = PTZRight, command=lambda:PTZMotion('Pan Right', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
+		).grid(row=1,column=2, padx=2, rowspan = 2)
+	Button(PtzFrame, width = 40, height = 40, image = PTZUp, command=lambda:PTZMotion('Tilt Up', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
+		).grid(row=0,column=1, padx=2)
+	Button(PtzFrame, width = 40, height = 40, image = PTZDown, command=lambda:PTZMotion('Tilt Down', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
+		).grid(row=3,column=1, padx=2)
+	Button(PtzFrame, width = 50, height = 30, image = PTZIn, command=lambda:PTZMotion('Zoom In', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
+		).grid(row=1,column=1, padx=2)
+	Button(PtzFrame, width = 50, height = 30, image = PTZOut, command=lambda:PTZMotion('Zoom Out', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
+		).grid(row=2,column=1, padx=2)
+	Button(PtzFrame, width = 44, height = 44, image = PTZStop, command=lambda:PTZMotion('PTZ Stop', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
+		).grid(row=0, column=2,rowspan=2, sticky=N)
+	Button(PtzFrame, width = 43, height = 43, image = PTZHome, command=lambda:PTZMotion('PTZ Home', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
+		).grid(row=2, column=2,rowspan=2, sticky=S)
+	# Home Set
+	HomeFrame = LabelFrame(top, text=' Home Modify ', fg='green'); HomeFrame.grid(row=0, column=1, padx=10, pady=5, sticky=NW)
+	Label(HomeFrame, text="Pan\nPosition").grid(row=0, column=0,padx=2)
+	Label(HomeFrame, text="Tilt\nPosition").grid(row=1, column=0,padx=2)
+	Label(HomeFrame, text="Zoom\nPosition").grid(row=2, column=0,padx=2)
+	HP=StringVar();HP.set(0.0);Scale(HomeFrame, from_=-90.0, to=90.0, resolution=0.1,variable=HP,orient=HORIZONTAL).grid(row=0, column=1, padx=2)
+	HT=StringVar();HT.set(0.0);Scale(HomeFrame, from_=-50.0, to=50.0, resolution=0.1,variable=HT,orient=HORIZONTAL).grid(row=1, column=1, padx=2)
+	HZ=StringVar();HZ.set(2.0);Scale(HomeFrame, from_=0.1, to=50.0, resolution=0.1,variable=HZ,orient=HORIZONTAL).grid(row=2, column=1, padx=2)
+	Button(HomeFrame, width = 15, height=2, text = 'Set to Home\n(Specified on the left)', bg = 'green',\
+					command=lambda:SetHomePosition(IP.get(), OP.get(), 0, HP.get(), HT.get(), HZ.get())).grid(row=0, column=2, padx=7, pady=7,sticky=W)
+	Button(HomeFrame, width = 15, height=2, text = 'Set to Home\n(Current location)', bg = 'green',\
+					command=lambda:SetHomePosition(IP.get(), OP.get(), 1, 0,0,0)).grid(row=1, column=2, padx=7, pady=7,sticky=W)
+	Button(HomeFrame, width = 15, height=2, text = 'Reset Home\n(0, 0, 2)', bg = 'green',\
+					command=lambda:SetHomePosition(IP.get(), OP.get(), 2, 0,0,0)).grid(row=2, column=2, padx=7, pady=7,sticky=W)
+	# onvif presetTour ctrl para
+	TourCtrlFrame = LabelFrame(top, text=' Preset Tour Ctrl ', fg = 'green')
+	TourCtrlFrame.grid(row=1, column=0, padx=10, pady=5, sticky=W,columnspan=2)
+	PresetFrame = LabelFrame(TourCtrlFrame, text = ' Preset Parameter ')
+	PresetFrame.grid(row=0, column=0, padx=10, pady=5, sticky=N, rowspan=2)
+	Label(PresetFrame, text="Preset Order", width=10, height = 2, anchor = 'c').grid(row=0, column=0)
+	Label(PresetFrame, text="Time, Speed(P/T/Z)", width=15, height = 2, anchor = 'c').grid(row=0, column=1)
+	Label(PresetFrame, text='Preset_01', width=10, height=1, anchor='c').grid(row=1, column=0, pady=0)
+	preset1 = StringVar();preset1.set(ptzDict['tourDefault1']);Entry(PresetFrame, textvariable=preset1, width=14).grid(row=1, column=1)
+	Label(PresetFrame, text='Preset_02', width=10, height=1, anchor='c').grid(row=2, column=0)
+	preset2 = StringVar();preset2.set(ptzDict['tourDefault2']);Entry(PresetFrame, textvariable=preset2, width=14).grid(row=2, column=1)
+	Label(PresetFrame, text='Preset_03', width=10, height=1, anchor='c').grid(row=3, column=0)
+	preset3 = StringVar();preset3.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset3, width=14).grid(row=3, column=1)
+	Label(PresetFrame, text='Preset_04', width=10, height=1, anchor='c').grid(row=4, column=0)
+	preset4 = StringVar();preset4.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset4, width=14).grid(row=4, column=1)
+	Label(PresetFrame, text='Preset_05', width=10, height=1, anchor='c').grid(row=5, column=0)
+	preset5 = StringVar();preset5.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset5, width=14).grid(row=5, column=1)
+	Label(PresetFrame, text='Preset_06', width=10, height=1, anchor='c').grid(row=6, column=0)
+	preset6 = StringVar();preset6.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset6, width=14).grid(row=6, column=1)
+	MoveFrame = LabelFrame(TourCtrlFrame, text = ' Continuous ')
+	MoveFrame.grid(row=0, column=1, padx=5, pady=5, sticky=N, rowspan=2)
+	moveFlag = IntVar(); Checkbutton(MoveFrame, text="Move",variable = moveFlag, width = 6).grid(row=0,column=1)
+	Label(MoveFrame, text="Speed", width=6, height = 2, anchor = 'e').grid(row=1, column=0)
+	Label(MoveFrame, text="Value", width=6, height = 2, anchor = 'w').grid(row=1, column=1)
+	index = 2
+	for item in ['Pan', 'Tilt', 'Zoom']:
+		Label(MoveFrame, text=item, width=5, height=2, anchor='e').grid(row=index, column=0)
+		index += 1
+	panSpeed = StringVar(); panSpeed.set(0);Entry(MoveFrame, textvariable=panSpeed, width=6).grid(row=2, column=1)
+	tiltSpeed = StringVar(); tiltSpeed.set(1.2);Entry(MoveFrame, textvariable=tiltSpeed, width=6).grid(row=3, column=1)
+	zoomSpeed = StringVar(); zoomSpeed.set(1.2);Entry(MoveFrame, textvariable=zoomSpeed, width=6).grid(row=4, column=1)
+
+	TourFrame = LabelFrame(TourCtrlFrame, text=' Command ')
+	TourFrame.grid(row=0, column=3, padx=5, pady=5, sticky=N)
+	Button(TourFrame, text = 'Start Tour', width = 10, height = 2, bg = 'green', \
+			command=lambda:startTour(IP.get(), OP.get(), \
+			preset1.get(), preset2.get(),preset3.get(),preset4.get(),preset5.get(), preset6.get(),\
+			moveFlag.get(), panSpeed.get(), tiltSpeed.get(), zoomSpeed.get())).grid(row=0,column=0, padx=8, pady=5)
+	Button(TourFrame, text = 'Stop Tour', width = 10, height = 2, bg = 'green', \
+			command=lambda:stopTour(IP.get(), OP.get())).grid(row=0,column=1, padx=9, pady=5)
+
+	SetPresetFrame = LabelFrame(TourCtrlFrame, text = ' Preset Configure ')
+	SetPresetFrame.grid(row=1, column=3, padx=5, pady=5, sticky=N)
+	Label(SetPresetFrame, text="Preset Name", width=10, height = 1, anchor = 'e').grid(row=0,column=0, padx=5, pady=5, columnspan=3)
+	presetList = StringVar();pList = ttk.Combobox(SetPresetFrame, textvariable=presetList, width=16);
+	pList["values"] = ['Preset_01', 'Preset_02', 'Preset_03', 'Preset_04', 'Preset_05', 'Preset_06', 'custom'];
+	pList.current(0); pList.grid(row=0,column=3, padx=5, pady=5, columnspan=3)
+	Button(SetPresetFrame, text = 'SET', width = 6, height=1,bg='green',\
+			command=lambda:PresetConfigure(pList.get(), 'SET', IP.get(), OP.get())).grid(row=1,column=0,padx=4,pady=5, columnspan=2)
+	Button(SetPresetFrame, text = 'DEL', width = 6, height=1,bg='green',\
+			command=lambda:PresetConfigure(pList.get(), 'DEL', IP.get(), OP.get())).grid(row=1,column=2,padx=4,pady=5, columnspan=2)
+	Button(SetPresetFrame, text = 'GOTO', width = 6, height=1,bg='green',\
+			command=lambda:PresetConfigure(pList.get(), 'GOTO', IP.get(), OP.get())).grid(row=1,column=4,padx=4,pady=5, columnspan=2)
+
+def click_model_cfg():
+	print "need add click_model_cfg logic"
+	top = Toplevel()
+	top.title("TOUR")
+	# cfg MODLE ctrl
+	# Model Configuration
+	ModleCfgFrame = LabelFrame(top, text=' MODEL Cfg ', fg = 'green')
+	ModleCfgFrame.grid(row=2, column=0, padx=10, pady=5)
+	ModelFrame = LabelFrame(ModleCfgFrame, text =' Model Configuration ')
+	ModelFrame.grid(row=0, column=0, padx=10, pady=5, sticky=N)
+	PathModelFrame = LabelFrame(ModelFrame, text = ' Model Path ' )
+	PathModelFrame.grid(row=0, column=0, padx=10, pady=5)
+	Label(PathModelFrame, text="Model File ", width=8).grid(row = 0, column = 0, padx=5, pady=5)
+	path = StringVar();path.set(modelDict['DefModelPath'])
+	Entry(PathModelFrame, textvariable = path, width=22).grid(row = 0, column = 1, padx=5, pady=5)
+	Button(PathModelFrame, text ="Path Select", width=10, bg ='green', command = selectPath).grid(row = 0, column = 2, padx=5, pady=5)
+	Label(PathModelFrame, text = "NickName ", width=8).grid(row = 1, column = 0, padx=5, pady=5)
+	defNickName = StringVar(); defNickName.set(modelDict['NickName']);
+	NickName = Entry(PathModelFrame, textvariable=defNickName, width=22).grid(row=1, column=1, padx=5, pady=5)
+	Button(PathModelFrame, text ="Recovery", width=10, bg ='green',\
+		command=lambda:recovery_model(os.path.split(path.get())[0])).grid(row = 1, column = 2, padx=5, pady=5)
+	#0: pagoda; 1: trapezoid; 2: panorama.
+	FileModelFrame = LabelFrame(ModelFrame, text = ' Model Select ')
+	FileModelFrame.grid(row=1, column=0, padx=10, pady=5, sticky=W)
+	Label(FileModelFrame, text = "Model Type", width = 8).grid(row=0,column=0, padx=5, pady=5)
+	defSaveAs = StringVar(); saveAs = ttk.Combobox(FileModelFrame, textvariable = defSaveAs, width = 21);
+	saveAs["values"] = ['pagoda', 'panorama LH', 'panorama FH']; saveAs.current(0); 
+	saveAs.grid(row=0, column = 1,padx=5, pady=5)
+	Label(FileModelFrame, text = 'Timestamp', width = 8).grid(row = 1, column=0, padx=5, pady=5)
+	defTimeS = StringVar(); TimeS = Entry(FileModelFrame, textvariable = defTimeS, width=22, state='readonly');
+	defTimeS.set(update_max_timestamp(os.path.split(path.get())[0], modelDict['ModelEdit']));
+	TimeS.grid(row=1, column=1, padx=5, pady=5)
+	Button(FileModelFrame, text = 'Custom ', width = 10, height = 1, bg = 'green', \
+			command=lambda:custom_model_cfg(os.path.split(path.get())[0], saveAs.get()))\
+			.grid(row=0,column=2, padx=5, pady=5)
+	Button(FileModelFrame, text = 'Model Adder', width=10, height=1, bg = 'green', \
+			command=lambda:StartModelAdder(os.path.split(path.get())[0], defNickName.get(), saveAs.get()))\
+			.grid(row=1, column=2, padx=5, pady=5)
+	# hint MODLE ctrl
+	HintModelFrame = LabelFrame(ModleCfgFrame, text = ' Calibration ')
+	HintModelFrame.grid(row = 0, column = 1, padx = 7, pady = 5, sticky=N)
+	Label(HintModelFrame, image=modleLogo).grid(row=0, column=0, padx = 8, pady = 5, columnspan=2)
+	Button(HintModelFrame, text = 'Model Calibration', width=15, height=1, bg = 'green', \
+			command=lambda:StartModelEditor()).grid(row=1, column=0, padx=10, pady=5)
+
+xmenu = Menu(root)
+maintainMenu = Menu(xmenu, tearoff = 0)
+xmenu.add_cascade(label = 'Maintain', menu = maintainMenu)
+maintainMenu.add_command(label = 'Check Network', command = click_check_network)
+maintainMenu.add_command(label = 'Check Mantis Service', command = click_maintain)
+maintainMenu.add_command(label = 'Check System Clip List', command = click_queryClip)
+maintainMenu.add_command(label = 'Fault Information Collection', command = infomation_col)
+advancedMenu = Menu(xmenu, tearoff = 0)
+xmenu.add_cascade(label = 'Advanced', menu = advancedMenu)
+advancedMenu.add_command(label = 'PTZ', command = click_ptz_ctrl)
+advancedMenu.add_command(label = 'MODEL', command = click_model_cfg)
+helpMenu = Menu(xmenu, tearoff = 0)
+xmenu.add_cascade(label = 'Help', menu = helpMenu)
+helpMenu.add_command(label = 'User Manual', command = click_help_onvif)
+helpMenu.add_command(label = 'AboutMe', command = click_about_me)
 xmenu.add_command(label = 'Exit', command = quit_window)
-xmenu.add_command(label = 'AboutMe', command = click_about_me)
-xmenu.add_command(label = 'Help', command = click_help_onvif)
 
 #3 content
 # para
@@ -740,10 +1214,10 @@ OnvifFrame = LabelFrame(ParaFrame, text=' Parameter ')
 OnvifFrame.grid(row=0, column=0, padx=10, pady=5, rowspan = 5, sticky=N) 
 onvifParaIndex = 1
 for item in ['Ip Addr  ', 'Rtsp Port  ', 'Onvif Port  ', 'Encode Type  ', 'Res (H*W)  ', 'Img Quality  ',  'System ID  ','Cam Nickname  ']:
-	Label(OnvifFrame, text=item, width = 13, height = 2, anchor='e').grid(row=onvifParaIndex,column=0)
+	Label(OnvifFrame, text=item, width = 13, height = 2, anchor='e').grid(row=onvifParaIndex,column=0,padx=0)
 	onvifParaIndex += 1
 
-defRIP = StringVar(); defRIP.set(get_host_ip()); IP = Entry(OnvifFrame, textvariable = defRIP, width=23); IP.grid(row=1,column=1)
+defRIP = StringVar(); defRIP.set(get_host_ip()); IP = Entry(OnvifFrame, textvariable = defRIP, width=23); IP.grid(row=1,column=1, padx=5)
 defRP = StringVar(); defRP.set(onvifDict['rtspPort']); RP = Entry(OnvifFrame, textvariable = defRP, width=23); RP.grid(row=2,column=1)
 defOP = StringVar(); defOP.set(onvifDict['onvifPort']); OP = Entry(OnvifFrame, textvariable = defOP, width=23); OP.grid(row=3,column=1)
 defEnc = StringVar(); encType = ttk.Combobox(OnvifFrame, textvariable=defEnc, width=21);
@@ -758,15 +1232,9 @@ defNName = StringVar(); defNName.set(modelDict['NickName']);
 NName = Entry(OnvifFrame, textvariable = defNName, width=23); NName.grid(row=8,column=1)
 CB = IntVar(); CB.set(onvifDict['RootDef']);Checkbutton(OnvifFrame, height = 2, text="root",variable = CB).grid(row=9,column=0, sticky=E)
 defRecord = IntVar(); defRecord.set(onvifDict['RecordDef']);Checkbutton(OnvifFrame, height = 2, text = "Start Record ad Default", variable = defRecord).grid(row=9, column=1, sticky=W)
-Button(OnvifFrame, text = 'Restore CFG', width = 9, height = 1, borderwidth=2, bg = 'green', \
-		command=lambda:restoreCfg()).grid(row=10,column=0)
-Button(OnvifFrame, text = 'Save as default CFG', width = 18, height = 1, bg = 'green',\
-		command=lambda:saveAsDefultCfg(CB.get(), IP.get(), RP.get(), OP.get(), \
-		encType.get(), resDefine.get(), Render.get(), NName.get(), defRecord.get(), imgQ.get())).grid(row=10,column=1,pady=5)
 
 # vlc live
-VideoPlay = PhotoImage(file=ptzDict['Play'])
-liveFrame = LabelFrame(ParaFrame, text = ' Video Player ')
+liveFrame = LabelFrame(ParaFrame, text = ' Video Preview ')
 liveFrame.grid(row=2, column=1, padx=10, pady=5, sticky=SW)
 Label(liveFrame, text='Rtsp Transport  ', width=13, height=1, anchor='e').grid(row=0, column=0, padx=0,pady=5)
 defTransport = StringVar();Transport=ttk.Combobox(liveFrame, textvariable=defTransport, width=13);
@@ -777,7 +1245,6 @@ Button(liveFrame, image = VideoPlay, width = 41, height = 30, borderwidth=1, bg 
 # button ctrl onvif
 StartFrame = LabelFrame(ParaFrame, text=' Command ')
 StartFrame.grid(row=0, column=1, padx=10, pady=5, sticky=N)
-onvifLogo = PhotoImage(file=onvifDict['onvifLogoFile'])
 Label(StartFrame, image=onvifLogo).grid(row=0, column=0, columnspan=3)
 Button(StartFrame, text = 'Start ONVIF', width = 8, height = 2, borderwidth=2, bg = 'green', \
 		command=lambda:click_start_onvif(CB.get(), IP.get(), RP.get(), OP.get(), encType.get(), resDefine.get(), \
@@ -789,143 +1256,19 @@ Button(StartFrame, text = 'Start REC', width = 8, height = 2, bg = 'green', \
 Button(StartFrame, text = 'Stop REC', width = 8, height = 2, bg = 'green', \
 		command=lambda:CtrlRecord(IP.get(), OP.get(), 'stop')).grid(row=1,column=2, padx=2, pady=5)
 
-# ptz ctrl 
-PtzFrame = LabelFrame(ParaFrame, text = ' PTZ Ctrl ')
-PtzFrame.grid(row=1, column=1, padx=10, pady=5, sticky=N)
-PTZLeft = PhotoImage(file=ptzDict['PTZLeft'])
-PTZRight = PhotoImage(file=ptzDict['PTZRight'])
-PTZUp = PhotoImage(file=ptzDict['PTZUp'])
-PTZDown = PhotoImage(file=ptzDict['PTZDown'])
-PTZIn = PhotoImage(file=ptzDict['PTZIn'])
-PTZOut = PhotoImage(file=ptzDict['PTZOut'])
-PTZStop = PhotoImage(file=ptzDict['PTZStop'])
-PTZHome = PhotoImage(file=ptzDict['PTZHome'])
-Label(PtzFrame, text="P").grid(row=0, column=3, padx=1)
-PS=StringVar();PS.set(50);Scale(PtzFrame, from_=0, to=100, resolution=0.1,variable=PS,orient=HORIZONTAL).grid(row=0, column=4, padx=1)
-Label(PtzFrame, text="T").grid(row=1, column=3, padx=1)
-TS=StringVar();TS.set(50);Scale(PtzFrame, from_=0, to=100, resolution=0.1,variable=TS,orient=HORIZONTAL).grid(row=1, column=4, padx=1)
-Label(PtzFrame, text="Z", width=2).grid(row=2, column=3, padx=1)
-ZS=StringVar();ZS.set(50);Scale(PtzFrame, from_=0, to=100, resolution=0.1,variable=ZS,orient=HORIZONTAL).grid(row=2, column=4, padx=1)
-Button(PtzFrame, width = 40, height = 40, image = PTZLeft, command=lambda:PTZMotion('Pan Left', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
-	).grid(row=1,column=0, padx=2, rowspan = 2)
-Button(PtzFrame, width = 40, height = 40, image = PTZRight, command=lambda:PTZMotion('Pan Right', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
-	).grid(row=1,column=2, padx=2, rowspan = 2)
-Button(PtzFrame, width = 40, height = 40, image = PTZUp, command=lambda:PTZMotion('Tilt Up', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
-	).grid(row=0,column=1, padx=2)
-Button(PtzFrame, width = 40, height = 40, image = PTZDown, command=lambda:PTZMotion('Tilt Down', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
-	).grid(row=3,column=1, padx=2)
-Button(PtzFrame, width = 50, height = 30, image = PTZIn, command=lambda:PTZMotion('Zoom In', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
-	).grid(row=1,column=1, padx=2)
-Button(PtzFrame, width = 50, height = 30, image = PTZOut, command=lambda:PTZMotion('Zoom Out', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
-	).grid(row=2,column=1, padx=2)
-Button(PtzFrame, width = 44, height = 44, image = PTZStop, command=lambda:PTZMotion('PTZ Stop', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
-	).grid(row=0, column=2,rowspan=2, sticky=N)
-Button(PtzFrame, width = 43, height = 43, image = PTZHome, command=lambda:PTZMotion('PTZ Home', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
-	).grid(row=2, column=2,rowspan=2, sticky=S)
+# cfg 
+CfgFrame = LabelFrame(ParaFrame, text=' Update CFG ')
+CfgFrame.grid(row=1, column=1, padx=10, pady=5, sticky=N)
+Button(CfgFrame, text = 'Restore Factory', width = 12, height = 2, borderwidth=2, bg = 'green', \
+		command=lambda:restoreCfg()).grid(row=10,column=0, padx=10, pady = 5)
+Button(CfgFrame, text = 'Save as Default', width = 12, height = 2, bg = 'green',\
+		command=lambda:saveAsDefultCfg(CB.get(), IP.get(), RP.get(), OP.get(), encType.get(), resDefine.get(),\
+		Render.get(), NName.get(), defRecord.get(), imgQ.get())).grid(row=10,column=1,padx=10, pady=5)
 
-# onvif presetTour ctrl para
-TourCtrlFrame = LabelFrame(root, text=' Preset Tour Ctrl ', fg = 'green')
-TourCtrlFrame.grid(row=1, column=0, padx=10, pady=5, sticky=W)
-PresetFrame = LabelFrame(TourCtrlFrame, text = ' Preset Parameter ')
-PresetFrame.grid(row=0, column=0, padx=10, pady=5, sticky=N, rowspan=2)
-Label(PresetFrame, text="Preset Order", width=10, height = 2, anchor = 'c').grid(row=0, column=0)
-Label(PresetFrame, text="Time, Speed(P/T/Z)", width=15, height = 2, anchor = 'c').grid(row=0, column=1)
-Label(PresetFrame, text='Preset_01', width=10, height=1, anchor='c').grid(row=1, column=0, pady=0)
-preset1 = StringVar();preset1.set(ptzDict['tourDefault1']);Entry(PresetFrame, textvariable=preset1, width=14).grid(row=1, column=1)
-Label(PresetFrame, text='Preset_02', width=10, height=1, anchor='c').grid(row=2, column=0)
-preset2 = StringVar();preset2.set(ptzDict['tourDefault2']);Entry(PresetFrame, textvariable=preset2, width=14).grid(row=2, column=1)
-Label(PresetFrame, text='Preset_03', width=10, height=1, anchor='c').grid(row=3, column=0)
-preset3 = StringVar();preset3.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset3, width=14).grid(row=3, column=1)
-Label(PresetFrame, text='Preset_04', width=10, height=1, anchor='c').grid(row=4, column=0)
-preset4 = StringVar();preset4.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset4, width=14).grid(row=4, column=1)
-Label(PresetFrame, text='Preset_05', width=10, height=1, anchor='c').grid(row=5, column=0)
-preset5 = StringVar();preset5.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset5, width=14).grid(row=5, column=1)
-Label(PresetFrame, text='Preset_06', width=10, height=1, anchor='c').grid(row=6, column=0)
-preset6 = StringVar();preset6.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset6, width=14).grid(row=6, column=1)
-
-MoveFrame = LabelFrame(TourCtrlFrame, text = ' Continuous ')
-MoveFrame.grid(row=0, column=1, padx=5, pady=5, sticky=N, rowspan=2)
-moveFlag = IntVar(); Checkbutton(MoveFrame, text="Move",variable = moveFlag, width = 6).grid(row=0,column=1)
-Label(MoveFrame, text="Speed", width=6, height = 2, anchor = 'e').grid(row=1, column=0)
-Label(MoveFrame, text="Value", width=6, height = 2, anchor = 'w').grid(row=1, column=1)
-index = 2
-for item in ['Pan', 'Tilt', 'Zoom']:
-	Label(MoveFrame, text=item, width=5, height=2, anchor='e').grid(row=index, column=0)
-	index += 1
-panSpeed = StringVar(); panSpeed.set(0);Entry(MoveFrame, textvariable=panSpeed, width=6).grid(row=2, column=1)
-tiltSpeed = StringVar(); tiltSpeed.set(1.2);Entry(MoveFrame, textvariable=tiltSpeed, width=6).grid(row=3, column=1)
-zoomSpeed = StringVar(); zoomSpeed.set(1.2);Entry(MoveFrame, textvariable=zoomSpeed, width=6).grid(row=4, column=1)
-
-TourFrame = LabelFrame(TourCtrlFrame, text=' Command ')
-TourFrame.grid(row=0, column=3, padx=5, pady=5, sticky=N)
-Button(TourFrame, text = 'Start Tour', width = 10, height = 2, bg = 'green', \
-		command=lambda:startTour(IP.get(), OP.get(), \
-		preset1.get(), preset2.get(),preset3.get(),preset4.get(),preset5.get(), preset6.get(),\
-		moveFlag.get(), panSpeed.get(), tiltSpeed.get(), zoomSpeed.get())).grid(row=0,column=0, padx=8, pady=5)
-Button(TourFrame, text = 'Stop Tour', width = 10, height = 2, bg = 'green', \
-		command=lambda:stopTour(IP.get(), OP.get())).grid(row=0,column=1, padx=9, pady=5)
-
-SetPresetFrame = LabelFrame(TourCtrlFrame, text = ' Preset Configure ')
-SetPresetFrame.grid(row=1, column=3, padx=5, pady=5, sticky=N)
-Label(SetPresetFrame, text="Preset Name", width=10, height = 1, anchor = 'e').grid(row=0,column=0, padx=5, pady=5, columnspan=3)
-presetList = StringVar();pList = ttk.Combobox(SetPresetFrame, textvariable=presetList, width=16);
-pList["values"] = ['Preset_01', 'Preset_02', 'Preset_03', 'Preset_04', 'Preset_05', 'Preset_06', 'custom'];
-pList.current(0); pList.grid(row=0,column=3, padx=5, pady=5, columnspan=3)
-Button(SetPresetFrame, text = 'SET', width = 6, height=1,bg='green',\
-		command=lambda:PresetConfigure(pList.get(), 'SET', IP.get(), OP.get())).grid(row=1,column=0,padx=4,pady=5, columnspan=2)
-Button(SetPresetFrame, text = 'DEL', width = 6, height=1,bg='green',\
-		command=lambda:PresetConfigure(pList.get(), 'DEL', IP.get(), OP.get())).grid(row=1,column=2,padx=4,pady=5, columnspan=2)
-Button(SetPresetFrame, text = 'GOTO', width = 6, height=1,bg='green',\
-		command=lambda:PresetConfigure(pList.get(), 'GOTO', IP.get(), OP.get())).grid(row=1,column=4,padx=4,pady=5, columnspan=2)
-
-# Model Configuration
-ModleCfgFrame = LabelFrame(root, text=' MODEL Cfg ', fg = 'green')
-ModleCfgFrame.grid(row=2, column=0, padx=10, pady=5)
-
-# cfg MODLE ctrl
-ModelFrame = LabelFrame(ModleCfgFrame, text =' Model Configuration ')
-ModelFrame.grid(row=0, column=0, padx=10, pady=5, sticky=N)
-PathModelFrame = LabelFrame(ModelFrame, text = ' Model Path ' )
-PathModelFrame.grid(row=0, column=0, padx=10, pady=5)
-Label(PathModelFrame, text="Model File ", width=8).grid(row = 0, column = 0, padx=5, pady=5)
-path = StringVar();path.set(modelDict['DefModelPath'])
-Entry(PathModelFrame, textvariable = path, width=22).grid(row = 0, column = 1, padx=5, pady=5)
-Button(PathModelFrame, text ="Path Select", width=10, bg ='green', command = selectPath).grid(row = 0, column = 2, padx=5, pady=5)
-Label(PathModelFrame, text = "NickName ", width=8).grid(row = 1, column = 0, padx=5, pady=5)
-defNickName = StringVar(); defNickName.set(modelDict['NickName']);
-NickName = Entry(PathModelFrame, textvariable=defNickName, width=22).grid(row=1, column=1, padx=5, pady=5)
-Button(PathModelFrame, text ="Recovery", width=10, bg ='green',\
-	command=lambda:recovery_model(os.path.split(path.get())[0])).grid(row = 1, column = 2, padx=5, pady=5)
-
-#0: pagoda; 1: trapezoid; 2: panorama.
-FileModelFrame = LabelFrame(ModelFrame, text = ' Model Select ')
-FileModelFrame.grid(row=1, column=0, padx=10, pady=5, sticky=W)
-Label(FileModelFrame, text = "Model Type", width = 8).grid(row=0,column=0, padx=5, pady=5)
-defSaveAs = StringVar(); saveAs = ttk.Combobox(FileModelFrame, textvariable = defSaveAs, width = 21);
-saveAs["values"] = ['pagoda', 'panorama LH', 'panorama FH']; saveAs.current(0); 
-saveAs.grid(row=0, column = 1,padx=5, pady=5)
-Label(FileModelFrame, text = 'Timestamp', width = 8).grid(row = 1, column=0, padx=5, pady=5)
-defTimeS = StringVar(); TimeS = Entry(FileModelFrame, textvariable = defTimeS, width=22, state='readonly');
-defTimeS.set(update_max_timestamp(os.path.split(path.get())[0], modelDict['ModelEdit']));
-TimeS.grid(row=1, column=1, padx=5, pady=5)
-Button(FileModelFrame, text = 'Custom ', width = 10, height = 1, bg = 'green', \
-		command=lambda:custom_model_cfg(os.path.split(path.get())[0], saveAs.get()))\
-		.grid(row=0,column=2, padx=5, pady=5)
-Button(FileModelFrame, text = 'Model Adder', width=10, height=1, bg = 'green', \
-		command=lambda:StartModelAdder(os.path.split(path.get())[0], defNickName.get(), saveAs.get()))\
-		.grid(row=1, column=2, padx=5, pady=5)
-
-# hint MODLE ctrl
-HintModelFrame = LabelFrame(ModleCfgFrame, text = ' Calibration ')
-HintModelFrame.grid(row = 0, column = 1, padx = 7, pady = 5, sticky=N)
-modleLogo = PhotoImage(file=modelDict['modleLogoFile'])
-Label(HintModelFrame, image=modleLogo).grid(row=0, column=0, padx = 8, pady = 5, columnspan=2)
-Button(HintModelFrame, text = 'Model Calibration', width=15, height=1, bg = 'green', \
-		command=lambda:StartModelEditor()).grid(row=1, column=0, padx=10, pady=5)
-
-reInstall_onvif('0')
-click_start_onvif(CB.get(), IP.get(), RP.get(), OP.get(), encType.get(), resDefine.get(), \
-		Render.get(), NName.get(), defRecord.get(), imgQ.get())
+#auto run
+#reInstall_onvif('0')
+#click_start_onvif(CB.get(), IP.get(), RP.get(), OP.get(), encType.get(), resDefine.get(), \
+#		Render.get(), NName.get(), defRecord.get(), imgQ.get())
 
 root['menu'] = xmenu
 

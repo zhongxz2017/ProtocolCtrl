@@ -19,3 +19,8 @@ releaseNote:
 6.每次启动工具时，会自动以默认参数启动ｏｎｖｉｆ
 7.删除了“reinstall Onvif”按钮，调整了ｖｌｃ　ｐｌａｙ的位置
 8.按键中的RECORD字样改为REC
+
+zhongxz2018  2018/12/10 v2.0.502
+releaseNote
+1. 修复回放问题
+2. 支持设置默认Home
