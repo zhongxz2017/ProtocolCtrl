@@ -32,7 +32,8 @@ onvifDict = {
 	'EncDef'    : '0',
 	'ResDef'    : '0',
 	'RootDef'   : '0',
-	'RecordDef' : '1'
+	'RecordDef' : '1',
+	'CropDef'   : '0'
 	}
 
 modelDict = {
@@ -163,7 +164,7 @@ root = Tk()
 root.resizable(True, False)
 root.attributes("-alpha",0.6)
 #1 title
-root.title('ProtocolCtrl-Auto-Tour v2.0.50301')
+root.title('协议控制工具　v2.0.506')
 
 # photo define
 modleLogo = PhotoImage(file=modelDict['modleLogoFile'])
@@ -186,13 +187,13 @@ def quit_window():
 	
 def click_help_onvif():
 	top = Toplevel()
-	top.title('ONVIF user manual')
+	top.title('用户指南')
 	Label(top, text='\nPlease check the protocol user manual.\nContact information of software team:li.min@aqueti.com.\n').pack()
 	webbrowser.open(helpDocDict['onvifHelp'])
 
 def click_about_me():
 	top = Toplevel()
-	top.title("About Me")
+	top.title("关于")
 	LicenseFrame = LabelFrame(top, text=' Permission statement ', fg = 'green')
 	LicenseFrame.grid(row=0, column=0, padx=10, pady=5)
 	Label(LicenseFrame, text = LisenceNotice, wraplength = 720, justify = 'left').grid(row = 0, column = 0, padx=10, pady=5)
@@ -203,8 +204,8 @@ def click_about_me():
 	ContactFrame.grid(row=2, column=0, padx=10, pady=5)
 	Label(ContactFrame, text = ContactNotice, wraplength = 720, justify = 'left').grid(row = 0, column = 0, padx=10, pady=5)
 
-def click_start_onvif(sudo, rip, rp, op, enc, res, render, nn, record, qua):
-	print "click_start_onvif", sudo, rip, rp, op, enc, res, render, nn, record, qua
+def click_start_onvif(sudo, rip, rp, op, enc, res, render, nn, record, qua, crop):
+	print "click_start_onvif", sudo, rip, rp, op, enc, res, render, nn, record, qua, crop
 
 	if sudo:
 		start_onvif_commad = 'sudo ' + onvifDict['onvifBin']
@@ -246,6 +247,8 @@ def click_start_onvif(sudo, rip, rp, op, enc, res, render, nn, record, qua):
 		start_onvif_commad += '0'
 	if '' != qua.strip():
 		start_onvif_commad += ' -qua ' + qua
+	if crop:
+		start_onvif_commad += ' -crop'
 	start_onvif_commad += '| tee ' 
 	start_onvif_commad += onvifDict['logDir'] + onvifDict["onvifLog"] +  onvifDict["runLog"]
 	start_onvif_commad += modelDict["NickName"] + '_'
@@ -280,7 +283,7 @@ def selectPath():
 	path.set(path_)
 
 def popSimpleDialog(level, hintStr):
-	userStr = hintStr + "Enter [OK] to take effect."
+	userStr = hintStr + "输入 [OK] 使之生效."
 	rsp = tkSimpleDialog.askstring(level, userStr)
 	if 'OK' != rsp:
 		return False
@@ -619,22 +622,22 @@ def maintain(tegraTotal, startIp, cmd):
 
 def click_maintain():
 	top = Toplevel()
-	top.title("Check Mantis Service")
+	top.title("检查网络")
 	DeviceFrame = LabelFrame(top, text = ' Mantis / Pathfinder ', fg = 'green')
 	DeviceFrame.grid(row=0, column=0, padx=10, pady = 10)
-	Label(DeviceFrame, text="Tegra Num", width=12, anchor='e').grid(row=1, column=0, pady=5, sticky=E)
+	Label(DeviceFrame, text="Tegra 总数", width=12, anchor='e').grid(row=1, column=0, pady=5, sticky=E)
 	defTegra = StringVar(); defTegra.set(3);
 	TegraTotal = Entry(DeviceFrame, textvariable=defTegra, width=14).grid(row=1, column=1, pady=5)
-	Label(DeviceFrame, text="Tegra start IP", width=12, anchor='e').grid(row=2, column=0, pady=5, sticky=E)
+	Label(DeviceFrame, text="起始Tegra IP", width=12, anchor='e').grid(row=2, column=0, pady=5, sticky=E)
 	defStartIp = StringVar(); defStartIp.set('10.0.1.1');
 	StartIp = Entry(DeviceFrame, textvariable=defStartIp, width=14);StartIp.grid(row=2, column=1, pady=5)
-	Button(DeviceFrame, text='NTP Check', width=12, height=1, bg='green',\
+	Button(DeviceFrame, text='检查NTP状态', width=12, height=1, bg='green',\
 		command=lambda:maintain(defTegra.get(), StartIp.get(), maintainDict['ntpCheck'])).grid(row=3, column=0,padx=5, pady=5)
-	Button(DeviceFrame, text = 'NTP Sync', width = 12, height = 1, bg = 'green', \
+	Button(DeviceFrame, text = '同步NTP', width = 12, height = 1, bg = 'green', \
 		command=lambda:maintain(defTegra.get(), StartIp.get(), maintainDict['ntpSync'])).grid(row=3,column=1, padx=5, pady=5)
-	Button(DeviceFrame, text = 'Daemon Check', width = 12, height = 1, bg = 'green', \
+	Button(DeviceFrame, text = '检查机头服务状态', width = 12, height = 1, bg = 'green', \
 		command=lambda:maintain(defTegra.get(), StartIp.get(), maintainDict['daemonCheck'])).grid(row=4,column=0, padx=5, pady=5)
-	Button(DeviceFrame, text = 'Daemon Restart', width = 12, height = 1, bg = 'green', \
+	Button(DeviceFrame, text = '重启机头服务', width = 12, height = 1, bg = 'green', \
 		command=lambda:maintain(defTegra.get(), StartIp.get(), maintainDict['daemonRes'])).grid(row=4,column=1, padx=5, pady=5)
 
 def queryClip(ip, op):
@@ -656,11 +659,11 @@ def queryClip(ip, op):
 
 def click_queryClip():
 	top = Toplevel()
-	top.title("Query")
-	QueryFrame = LabelFrame(top, text = 'Device Info', fg = 'green')
+	top.title("录像查询")
+	QueryFrame = LabelFrame(top, text = '设备信息', fg = 'green')
 	QueryFrame.grid(row=0, column=0, padx=10, pady = 10)
-	Label(QueryFrame, text="Clip List", width=12, anchor='e').grid(row=0, column=0, pady=5, sticky=E)
-	Button(QueryFrame, text = 'Query Clip', width = 12, height = 1, bg = 'green', \
+	Label(QueryFrame, text="录像列表", width=12, anchor='e').grid(row=0, column=0, pady=5, sticky=E)
+	Button(QueryFrame, text = '查询', width = 12, height = 1, bg = 'green', \
 		command=lambda:queryClip(IP.get(), OP.get())).grid(row=0,column=1, padx=10, pady=5)
 
 def getRenderServerID(filepath):
@@ -722,11 +725,15 @@ def restoreCfg():
 					value = line.split(':')[1].strip()
 					line = line.replace(value, "'70',")
 					print line
+				if "'RootDef' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'0',")
+					print line
 			f_w.write(line)
 	print "restore cfg to default success"
 
-def saveAsDefultCfg(CB, IP, RP, OP, enc, res, system, NName, Record, qua):
-	print CB, IP, RP, OP, enc, res, system, NName, Record
+def saveAsDefultCfg(CB, IP, RP, OP, enc, res, system, NName, Record, qua, crop):
+	print CB, IP, RP, OP, enc, res, system, NName, Record, crop
 	lineNum = 0
 	with open (daemonDict['protocolCtrl'], "r") as f:
 		lines = f.readlines()
@@ -785,6 +792,10 @@ def saveAsDefultCfg(CB, IP, RP, OP, enc, res, system, NName, Record, qua):
 				if "'NickName' " in line:
 					value = line.split(':')[1].strip()
 					line = line.replace(value, "'"+ NName + "',")
+					print line
+				if "'CropDef' " in line:
+					value = line.split(':')[1].strip()
+					line = line.replace(value, "'"+ str(crop) + "',")
 					print line
 			f_w.write(line)
 	print "save cur cfg ad default success"	
@@ -1049,9 +1060,9 @@ def click_ptz_ctrl():
 	top = Toplevel()
 	top.title("PTZ")
 	# ptz ctrl 
-	PtzFrame = LabelFrame(top, text = ' PTZ Ctrl ', fg = 'green')
+	PtzFrame = LabelFrame(top, text = ' PTZ控制 ', fg = 'green')
 	PtzFrame.grid(row=0, column=0, padx=10, pady=5, sticky=NW)
-	Label(PtzFrame, text="Move Speed", fg='green').grid(row=0, column=3, columnspan=2,padx=1,sticky=S)
+	Label(PtzFrame, text="移动速度", fg='green').grid(row=0, column=3, columnspan=2,padx=1,sticky=S)
 	Label(PtzFrame, text="P").grid(row=1, column=3, padx=1)
 	PS=StringVar();PS.set(50);Scale(PtzFrame, from_=0, to=100, resolution=0.1,variable=PS,orient=HORIZONTAL).grid(row=1, column=4, padx=1)
 	Label(PtzFrame, text="T").grid(row=2, column=3, padx=1)
@@ -1075,43 +1086,43 @@ def click_ptz_ctrl():
 	Button(PtzFrame, width = 43, height = 43, image = PTZHome, command=lambda:PTZMotion('PTZ Home', PS.get(), TS.get(), ZS.get(), IP.get(), OP.get())\
 		).grid(row=2, column=2,rowspan=2, sticky=S)
 	# Home Set
-	HomeFrame = LabelFrame(top, text=' Home Modify ', fg='green'); HomeFrame.grid(row=0, column=1, padx=10, pady=5, sticky=NW)
-	Label(HomeFrame, text="Pan\nPosition").grid(row=0, column=0,padx=2)
-	Label(HomeFrame, text="Tilt\nPosition").grid(row=1, column=0,padx=2)
-	Label(HomeFrame, text="Zoom\nPosition").grid(row=2, column=0,padx=2)
+	HomeFrame = LabelFrame(top, text=' 看守卫修正 ', fg='green'); HomeFrame.grid(row=0, column=1, padx=10, pady=5, sticky=NW)
+	Label(HomeFrame, text="Pan\n坐标").grid(row=0, column=0,padx=2)
+	Label(HomeFrame, text="Tilt\n坐标").grid(row=1, column=0,padx=2)
+	Label(HomeFrame, text="Zoom\n坐标").grid(row=2, column=0,padx=2)
 	HP=StringVar();HP.set(0.0);Scale(HomeFrame, from_=-90.0, to=90.0, resolution=0.1,variable=HP,orient=HORIZONTAL).grid(row=0, column=1, padx=2)
 	HT=StringVar();HT.set(0.0);Scale(HomeFrame, from_=-50.0, to=50.0, resolution=0.1,variable=HT,orient=HORIZONTAL).grid(row=1, column=1, padx=2)
 	HZ=StringVar();HZ.set(2.0);Scale(HomeFrame, from_=0.1, to=50.0, resolution=0.1,variable=HZ,orient=HORIZONTAL).grid(row=2, column=1, padx=2)
-	Button(HomeFrame, width = 15, height=2, text = 'Set to Home\n(Specified on the left)', bg = 'green',\
+	Button(HomeFrame, width = 15, height=2, text = '设置看守卫\n(使用左侧指定的坐标)', bg = 'green',\
 					command=lambda:SetHomePosition(IP.get(), OP.get(), 0, HP.get(), HT.get(), HZ.get())).grid(row=0, column=2, padx=7, pady=7,sticky=W)
-	Button(HomeFrame, width = 15, height=2, text = 'Set to Home\n(Current location)', bg = 'green',\
+	Button(HomeFrame, width = 15, height=2, text = '设置看守卫\n(使用图像当前位置)', bg = 'green',\
 					command=lambda:SetHomePosition(IP.get(), OP.get(), 1, 0,0,0)).grid(row=1, column=2, padx=7, pady=7,sticky=W)
-	Button(HomeFrame, width = 15, height=2, text = 'Reset Home\n(0, 0, 2)', bg = 'green',\
+	Button(HomeFrame, width = 15, height=2, text = '重置看守卫\n默认值(0, 0, 2)', bg = 'green',\
 					command=lambda:SetHomePosition(IP.get(), OP.get(), 2, 0,0,0)).grid(row=2, column=2, padx=7, pady=7,sticky=W)
 	# onvif presetTour ctrl para
-	TourCtrlFrame = LabelFrame(top, text=' Preset Tour Ctrl ', fg = 'green')
+	TourCtrlFrame = LabelFrame(top, text=' 预置位巡航控制 ', fg = 'green')
 	TourCtrlFrame.grid(row=1, column=0, padx=10, pady=5, sticky=W,columnspan=2)
-	PresetFrame = LabelFrame(TourCtrlFrame, text = ' Preset Parameter ')
+	PresetFrame = LabelFrame(TourCtrlFrame, text = ' 预置位参数设置 ')
 	PresetFrame.grid(row=0, column=0, padx=10, pady=5, sticky=N, rowspan=2)
-	Label(PresetFrame, text="Preset Order", width=10, height = 2, anchor = 'c').grid(row=0, column=0)
-	Label(PresetFrame, text="Time, Speed(P/T/Z)", width=15, height = 2, anchor = 'c').grid(row=0, column=1)
-	Label(PresetFrame, text='Preset_01', width=10, height=1, anchor='c').grid(row=1, column=0, pady=0)
+	Label(PresetFrame, text="预置位次序", width=10, height = 2, anchor = 'c').grid(row=0, column=0)
+	Label(PresetFrame, text="驻留时间, 速度(P/T/Z)", width=15, height = 2, anchor = 'c').grid(row=0, column=1)
+	Label(PresetFrame, text='预置位_01', width=10, height=1, anchor='c').grid(row=1, column=0, pady=0)
 	preset1 = StringVar();preset1.set(ptzDict['tourDefault1']);Entry(PresetFrame, textvariable=preset1, width=14).grid(row=1, column=1)
-	Label(PresetFrame, text='Preset_02', width=10, height=1, anchor='c').grid(row=2, column=0)
+	Label(PresetFrame, text='预置位_02', width=10, height=1, anchor='c').grid(row=2, column=0)
 	preset2 = StringVar();preset2.set(ptzDict['tourDefault2']);Entry(PresetFrame, textvariable=preset2, width=14).grid(row=2, column=1)
-	Label(PresetFrame, text='Preset_03', width=10, height=1, anchor='c').grid(row=3, column=0)
+	Label(PresetFrame, text='预置位_03', width=10, height=1, anchor='c').grid(row=3, column=0)
 	preset3 = StringVar();preset3.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset3, width=14).grid(row=3, column=1)
-	Label(PresetFrame, text='Preset_04', width=10, height=1, anchor='c').grid(row=4, column=0)
+	Label(PresetFrame, text='预置位_04', width=10, height=1, anchor='c').grid(row=4, column=0)
 	preset4 = StringVar();preset4.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset4, width=14).grid(row=4, column=1)
-	Label(PresetFrame, text='Preset_05', width=10, height=1, anchor='c').grid(row=5, column=0)
+	Label(PresetFrame, text='预置位_05', width=10, height=1, anchor='c').grid(row=5, column=0)
 	preset5 = StringVar();preset5.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset5, width=14).grid(row=5, column=1)
-	Label(PresetFrame, text='Preset_06', width=10, height=1, anchor='c').grid(row=6, column=0)
+	Label(PresetFrame, text='预置位_06', width=10, height=1, anchor='c').grid(row=6, column=0)
 	preset6 = StringVar();preset6.set(ptzDict['tourDefault']);Entry(PresetFrame, textvariable=preset6, width=14).grid(row=6, column=1)
-	MoveFrame = LabelFrame(TourCtrlFrame, text = ' Continuous ')
+	MoveFrame = LabelFrame(TourCtrlFrame, text = ' 持续运动 ')
 	MoveFrame.grid(row=0, column=1, padx=5, pady=5, sticky=N, rowspan=2)
-	moveFlag = IntVar(); Checkbutton(MoveFrame, text="Move",variable = moveFlag, width = 6).grid(row=0,column=1)
-	Label(MoveFrame, text="Speed", width=6, height = 2, anchor = 'e').grid(row=1, column=0)
-	Label(MoveFrame, text="Value", width=6, height = 2, anchor = 'w').grid(row=1, column=1)
+	moveFlag = IntVar(); Checkbutton(MoveFrame, text="运动",variable = moveFlag, width = 6).grid(row=0,column=1)
+	Label(MoveFrame, text="方向", width=6, height = 2, anchor = 'e').grid(row=1, column=0)
+	Label(MoveFrame, text="速度", width=6, height = 2, anchor = 'w').grid(row=1, column=1)
 	index = 2
 	for item in ['Pan', 'Tilt', 'Zoom']:
 		Label(MoveFrame, text=item, width=5, height=2, anchor='e').grid(row=index, column=0)
@@ -1120,155 +1131,156 @@ def click_ptz_ctrl():
 	tiltSpeed = StringVar(); tiltSpeed.set(1.2);Entry(MoveFrame, textvariable=tiltSpeed, width=6).grid(row=3, column=1)
 	zoomSpeed = StringVar(); zoomSpeed.set(1.2);Entry(MoveFrame, textvariable=zoomSpeed, width=6).grid(row=4, column=1)
 
-	TourFrame = LabelFrame(TourCtrlFrame, text=' Command ')
+	TourFrame = LabelFrame(TourCtrlFrame, text=' 控制命令 ')
 	TourFrame.grid(row=0, column=3, padx=5, pady=5, sticky=N)
-	Button(TourFrame, text = 'Start Tour', width = 10, height = 2, bg = 'green', \
+	Button(TourFrame, text = '启动巡航', width = 10, height = 2, bg = 'green', \
 			command=lambda:startTour(IP.get(), OP.get(), \
 			preset1.get(), preset2.get(),preset3.get(),preset4.get(),preset5.get(), preset6.get(),\
 			moveFlag.get(), panSpeed.get(), tiltSpeed.get(), zoomSpeed.get())).grid(row=0,column=0, padx=8, pady=5)
-	Button(TourFrame, text = 'Stop Tour', width = 10, height = 2, bg = 'green', \
+	Button(TourFrame, text = '停止巡航', width = 10, height = 2, bg = 'green', \
 			command=lambda:stopTour(IP.get(), OP.get())).grid(row=0,column=1, padx=9, pady=5)
 
-	SetPresetFrame = LabelFrame(TourCtrlFrame, text = ' Preset Configure ')
+	SetPresetFrame = LabelFrame(TourCtrlFrame, text = ' 预置位配置 ')
 	SetPresetFrame.grid(row=1, column=3, padx=5, pady=5, sticky=N)
-	Label(SetPresetFrame, text="Preset Name", width=10, height = 1, anchor = 'e').grid(row=0,column=0, padx=5, pady=5, columnspan=3)
+	Label(SetPresetFrame, text="预置位名称", width=10, height = 1, anchor = 'e').grid(row=0,column=0, padx=5, pady=5, columnspan=3)
 	presetList = StringVar();pList = ttk.Combobox(SetPresetFrame, textvariable=presetList, width=16);
 	pList["values"] = ['Preset_01', 'Preset_02', 'Preset_03', 'Preset_04', 'Preset_05', 'Preset_06', 'custom'];
 	pList.current(0); pList.grid(row=0,column=3, padx=5, pady=5, columnspan=3)
-	Button(SetPresetFrame, text = 'SET', width = 6, height=1,bg='green',\
+	Button(SetPresetFrame, text = '设置', width = 6, height=1,bg='green',\
 			command=lambda:PresetConfigure(pList.get(), 'SET', IP.get(), OP.get())).grid(row=1,column=0,padx=4,pady=5, columnspan=2)
-	Button(SetPresetFrame, text = 'DEL', width = 6, height=1,bg='green',\
+	Button(SetPresetFrame, text = '删除', width = 6, height=1,bg='green',\
 			command=lambda:PresetConfigure(pList.get(), 'DEL', IP.get(), OP.get())).grid(row=1,column=2,padx=4,pady=5, columnspan=2)
-	Button(SetPresetFrame, text = 'GOTO', width = 6, height=1,bg='green',\
+	Button(SetPresetFrame, text = '运动到', width = 6, height=1,bg='green',\
 			command=lambda:PresetConfigure(pList.get(), 'GOTO', IP.get(), OP.get())).grid(row=1,column=4,padx=4,pady=5, columnspan=2)
 
 def click_model_cfg():
 	print "need add click_model_cfg logic"
 	top = Toplevel()
-	top.title("TOUR")
+	top.title("模型")
 	# cfg MODLE ctrl
 	# Model Configuration
-	ModleCfgFrame = LabelFrame(top, text=' MODEL Cfg ', fg = 'green')
+	ModleCfgFrame = LabelFrame(top, text=' 模型配置 ', fg = 'green')
 	ModleCfgFrame.grid(row=2, column=0, padx=10, pady=5)
-	ModelFrame = LabelFrame(ModleCfgFrame, text =' Model Configuration ')
+	ModelFrame = LabelFrame(ModleCfgFrame, text =' 模型调整 ')
 	ModelFrame.grid(row=0, column=0, padx=10, pady=5, sticky=N)
-	PathModelFrame = LabelFrame(ModelFrame, text = ' Model Path ' )
+	PathModelFrame = LabelFrame(ModelFrame, text = ' 模型路径 ' )
 	PathModelFrame.grid(row=0, column=0, padx=10, pady=5)
-	Label(PathModelFrame, text="Model File ", width=8).grid(row = 0, column = 0, padx=5, pady=5)
+	Label(PathModelFrame, text="模型文件 ", width=8).grid(row = 0, column = 0, padx=5, pady=5)
 	path = StringVar();path.set(modelDict['DefModelPath'])
 	Entry(PathModelFrame, textvariable = path, width=22).grid(row = 0, column = 1, padx=5, pady=5)
-	Button(PathModelFrame, text ="Path Select", width=10, bg ='green', command = selectPath).grid(row = 0, column = 2, padx=5, pady=5)
-	Label(PathModelFrame, text = "NickName ", width=8).grid(row = 1, column = 0, padx=5, pady=5)
+	Button(PathModelFrame, text ="路径选择", width=10, bg ='green', command = selectPath).grid(row = 0, column = 2, padx=5, pady=5)
+	Label(PathModelFrame, text = "相机昵称 ", width=8).grid(row = 1, column = 0, padx=5, pady=5)
 	defNickName = StringVar(); defNickName.set(modelDict['NickName']);
 	NickName = Entry(PathModelFrame, textvariable=defNickName, width=22).grid(row=1, column=1, padx=5, pady=5)
-	Button(PathModelFrame, text ="Recovery", width=10, bg ='green',\
+	Button(PathModelFrame, text ="重置模型", width=10, bg ='green',\
 		command=lambda:recovery_model(os.path.split(path.get())[0])).grid(row = 1, column = 2, padx=5, pady=5)
 	#0: pagoda; 1: trapezoid; 2: panorama.
-	FileModelFrame = LabelFrame(ModelFrame, text = ' Model Select ')
+	FileModelFrame = LabelFrame(ModelFrame, text = ' 模型选择 ')
 	FileModelFrame.grid(row=1, column=0, padx=10, pady=5, sticky=W)
-	Label(FileModelFrame, text = "Model Type", width = 8).grid(row=0,column=0, padx=5, pady=5)
+	Label(FileModelFrame, text = "模型类别", width = 8).grid(row=0,column=0, padx=5, pady=5)
 	defSaveAs = StringVar(); saveAs = ttk.Combobox(FileModelFrame, textvariable = defSaveAs, width = 21);
 	saveAs["values"] = ['pagoda', 'panorama LH', 'panorama FH']; saveAs.current(0); 
 	saveAs.grid(row=0, column = 1,padx=5, pady=5)
-	Label(FileModelFrame, text = 'Timestamp', width = 8).grid(row = 1, column=0, padx=5, pady=5)
+	Label(FileModelFrame, text = '时间戳', width = 8).grid(row = 1, column=0, padx=5, pady=5)
 	defTimeS = StringVar(); TimeS = Entry(FileModelFrame, textvariable = defTimeS, width=22, state='readonly');
 	defTimeS.set(update_max_timestamp(os.path.split(path.get())[0], modelDict['ModelEdit']));
 	TimeS.grid(row=1, column=1, padx=5, pady=5)
-	Button(FileModelFrame, text = 'Custom ', width = 10, height = 1, bg = 'green', \
+	Button(FileModelFrame, text = '自定义 ', width = 10, height = 1, bg = 'green', \
 			command=lambda:custom_model_cfg(os.path.split(path.get())[0], saveAs.get()))\
 			.grid(row=0,column=2, padx=5, pady=5)
-	Button(FileModelFrame, text = 'Model Adder', width=10, height=1, bg = 'green', \
+	Button(FileModelFrame, text = '触发', width=10, height=1, bg = 'green', \
 			command=lambda:StartModelAdder(os.path.split(path.get())[0], defNickName.get(), saveAs.get()))\
 			.grid(row=1, column=2, padx=5, pady=5)
 	# hint MODLE ctrl
-	HintModelFrame = LabelFrame(ModleCfgFrame, text = ' Calibration ')
+	HintModelFrame = LabelFrame(ModleCfgFrame, text = ' 校正 ')
 	HintModelFrame.grid(row = 0, column = 1, padx = 7, pady = 5, sticky=N)
 	Label(HintModelFrame, image=modleLogo).grid(row=0, column=0, padx = 8, pady = 5, columnspan=2)
-	Button(HintModelFrame, text = 'Model Calibration', width=15, height=1, bg = 'green', \
+	Button(HintModelFrame, text = '模型校正', width=15, height=1, bg = 'green', \
 			command=lambda:StartModelEditor()).grid(row=1, column=0, padx=10, pady=5)
 
 xmenu = Menu(root)
 maintainMenu = Menu(xmenu, tearoff = 0)
-xmenu.add_cascade(label = 'Maintain', menu = maintainMenu)
-maintainMenu.add_command(label = 'Check Network', command = click_check_network)
-maintainMenu.add_command(label = 'Check Mantis Service', command = click_maintain)
-maintainMenu.add_command(label = 'Check System Clip List', command = click_queryClip)
-maintainMenu.add_command(label = 'Fault Information Collection', command = infomation_col)
+xmenu.add_cascade(label = '维护', menu = maintainMenu)
+maintainMenu.add_command(label = '检查网络连接', command = click_check_network)
+maintainMenu.add_command(label = '检查机头服务', command = click_maintain)
+maintainMenu.add_command(label = '查询录像列表', command = click_queryClip)
+maintainMenu.add_command(label = '故障信息收集', command = infomation_col)
 advancedMenu = Menu(xmenu, tearoff = 0)
-xmenu.add_cascade(label = 'Advanced', menu = advancedMenu)
-advancedMenu.add_command(label = 'PTZ', command = click_ptz_ctrl)
-advancedMenu.add_command(label = 'MODEL', command = click_model_cfg)
+xmenu.add_cascade(label = '高级', menu = advancedMenu)
+advancedMenu.add_command(label = 'PTZ控制', command = click_ptz_ctrl)
+advancedMenu.add_command(label = '模型配置', command = click_model_cfg)
 helpMenu = Menu(xmenu, tearoff = 0)
-xmenu.add_cascade(label = 'Help', menu = helpMenu)
-helpMenu.add_command(label = 'User Manual', command = click_help_onvif)
-helpMenu.add_command(label = 'AboutMe', command = click_about_me)
-xmenu.add_command(label = 'Exit', command = quit_window)
+xmenu.add_cascade(label = '帮助', menu = helpMenu)
+helpMenu.add_command(label = '用户指南', command = click_help_onvif)
+helpMenu.add_command(label = '关于', command = click_about_me)
+xmenu.add_command(label = '退出', command = quit_window)
 
 #3 content
 # para
-ParaFrame = LabelFrame(root, text='ONVIF Ctrl', height = 2, fg = 'green')
+ParaFrame = LabelFrame(root, text='ONVIF控制', height = 2, fg = 'green')
 ParaFrame.grid(row=0, column=0, padx=10, pady=5)
 
 # onvif start para
-OnvifFrame = LabelFrame(ParaFrame, text=' Parameter ')
+OnvifFrame = LabelFrame(ParaFrame, text=' 启动参数 ')
 OnvifFrame.grid(row=0, column=0, padx=10, pady=5, rowspan = 5, sticky=N) 
 onvifParaIndex = 1
-for item in ['Ip Addr  ', 'Rtsp Port  ', 'Onvif Port  ', 'Encode Type  ', 'Res (H*W)  ', 'Img Quality  ',  'System ID  ','Cam Nickname  ']:
+for item in ['服务器地址  ', 'Rtsp端口号  ', 'Onvif端口号  ', '编码类别  ', '分辨率 (H*W)  ', '图像质量  ',  '服务器ID  ','相机昵称  ']:
 	Label(OnvifFrame, text=item, width = 13, height = 2, anchor='e').grid(row=onvifParaIndex,column=0,padx=0)
 	onvifParaIndex += 1
 
-defRIP = StringVar(); defRIP.set(get_host_ip()); IP = Entry(OnvifFrame, textvariable = defRIP, width=23); IP.grid(row=1,column=1, padx=5)
-defRP = StringVar(); defRP.set(onvifDict['rtspPort']); RP = Entry(OnvifFrame, textvariable = defRP, width=23); RP.grid(row=2,column=1)
-defOP = StringVar(); defOP.set(onvifDict['onvifPort']); OP = Entry(OnvifFrame, textvariable = defOP, width=23); OP.grid(row=3,column=1)
+defRIP = StringVar(); defRIP.set(get_host_ip()); IP = Entry(OnvifFrame, textvariable = defRIP, width=23); IP.grid(row=1,column=1, padx=5, columnspan=2)
+defRP = StringVar(); defRP.set(onvifDict['rtspPort']); RP = Entry(OnvifFrame, textvariable = defRP, width=23); RP.grid(row=2,column=1, columnspan=2)
+defOP = StringVar(); defOP.set(onvifDict['onvifPort']); OP = Entry(OnvifFrame, textvariable = defOP, width=23); OP.grid(row=3,column=1, columnspan=2)
 defEnc = StringVar(); encType = ttk.Combobox(OnvifFrame, textvariable=defEnc, width=21);
-encType["values"] = ['h264', 'JPEG', 'h265']; encType.current(onvifDict['EncDef']); encType.grid(row=4,column=1)
+encType["values"] = ['h264', 'JPEG', 'h265']; encType.current(onvifDict['EncDef']); encType.grid(row=4,column=1, columnspan=2)
 defRes = StringVar(); resDefine = ttk.Combobox(OnvifFrame, textvariable=defRes, width=21);
 resDefine["values"] = [onvifDict['HW1080P'], onvifDict['HW4K'], onvifDict['HWCustom']]; 
-resDefine.current(onvifDict['ResDef']); resDefine.grid(row=5,column=1);
-defImgQ = StringVar(); defImgQ.set(onvifDict['imgQuality']);imgQ = Entry(OnvifFrame, textvariable = defImgQ, width=23); imgQ.grid(row=6,column=1)
+resDefine.current(onvifDict['ResDef']); resDefine.grid(row=5,column=1, columnspan=2);
+defImgQ = StringVar(); defImgQ.set(onvifDict['imgQuality']);imgQ = Entry(OnvifFrame, textvariable = defImgQ, width=23); imgQ.grid(row=6,column=1, columnspan=2)
 defRender = StringVar(); defRender.set(getRenderServerID(daemonDict['configuration']));
-Render = Entry(OnvifFrame, textvariable = defRender, width=23); Render.grid(row=7, column=1)
+Render = Entry(OnvifFrame, textvariable = defRender, width=23); Render.grid(row=7, column=1, columnspan=2)
 defNName = StringVar(); defNName.set(modelDict['NickName']); 
-NName = Entry(OnvifFrame, textvariable = defNName, width=23); NName.grid(row=8,column=1)
-CB = IntVar(); CB.set(onvifDict['RootDef']);Checkbutton(OnvifFrame, height = 2, text="root",variable = CB).grid(row=9,column=0, sticky=E)
-defRecord = IntVar(); defRecord.set(onvifDict['RecordDef']);Checkbutton(OnvifFrame, height = 2, text = "Start Record ad Default", variable = defRecord).grid(row=9, column=1, sticky=W)
+NName = Entry(OnvifFrame, textvariable = defNName, width=23); NName.grid(row=8,column=1, columnspan=2)
+CB = IntVar(); CB.set(onvifDict['RootDef']);Checkbutton(OnvifFrame, height = 2, text="超级权限",variable = CB).grid(row=9,column=0, sticky=E)
+defRecord = IntVar(); defRecord.set(onvifDict['RecordDef']);Checkbutton(OnvifFrame, height = 2, text = "启动时启动录像", variable = defRecord).grid(row=9, column=2, sticky=W)
+Crop = IntVar(); Crop.set(onvifDict['CropDef']);Checkbutton(OnvifFrame, height = 2, text = "裁剪", variable = Crop).grid(row=9, column=1)
 
 # vlc live
-liveFrame = LabelFrame(ParaFrame, text = ' Video Preview ')
+liveFrame = LabelFrame(ParaFrame, text = ' 视频预览 ')
 liveFrame.grid(row=2, column=1, padx=10, pady=5, sticky=SW)
-Label(liveFrame, text='Rtsp Transport  ', width=13, height=1, anchor='e').grid(row=0, column=0, padx=0,pady=5)
+Label(liveFrame, text='视频传输方式  ', width=13, height=1, anchor='e').grid(row=0, column=0, padx=0,pady=5)
 defTransport = StringVar();Transport=ttk.Combobox(liveFrame, textvariable=defTransport, width=13);
 Transport["values"]=['TCP', 'UDP'];Transport.current(1);Transport.grid(row=0, column=1, padx=2,pady=5)
 Button(liveFrame, image = VideoPlay, width = 41, height = 30, borderwidth=1, bg = 'green',\
 		command=lambda:vlcPlay(IP.get(), RP.get(), Transport.get())).grid(row=0, column=2,padx=5,pady=5)
 
 # button ctrl onvif
-StartFrame = LabelFrame(ParaFrame, text=' Command ')
+StartFrame = LabelFrame(ParaFrame, text=' 控制命令 ')
 StartFrame.grid(row=0, column=1, padx=10, pady=5, sticky=N)
 Label(StartFrame, image=onvifLogo).grid(row=0, column=0, columnspan=3)
-Button(StartFrame, text = 'Start ONVIF', width = 8, height = 2, borderwidth=2, bg = 'green', \
+Button(StartFrame, text = '启动ONVIF', width = 8, height = 2, borderwidth=2, bg = 'green', \
 		command=lambda:click_start_onvif(CB.get(), IP.get(), RP.get(), OP.get(), encType.get(), resDefine.get(), \
-		Render.get(), NName.get(), defRecord.get(), imgQ.get())).grid(row=1,column=0, padx=2, pady=5)
+		Render.get(), NName.get(), defRecord.get(), imgQ.get(), Crop.get())).grid(row=1,column=0, padx=2, pady=5)
 #Button(StartFrame, text = 'ReInstall ONVIF', width = 12, height = 2, bg = 'green', \
 #		command=lambda:reInstall_onvif('1')).grid(row=1,column=1, padx=10, pady=5)
-Button(StartFrame, text = 'Start REC', width = 8, height = 2, bg = 'green', \
+Button(StartFrame, text = '启动录像', width = 8, height = 2, bg = 'green', \
 		command=lambda:CtrlRecord(IP.get(), OP.get(), 'start')).grid(row=1,column=1, padx=2, pady=5)
-Button(StartFrame, text = 'Stop REC', width = 8, height = 2, bg = 'green', \
+Button(StartFrame, text = '停止录像', width = 8, height = 2, bg = 'green', \
 		command=lambda:CtrlRecord(IP.get(), OP.get(), 'stop')).grid(row=1,column=2, padx=2, pady=5)
 
 # cfg 
-CfgFrame = LabelFrame(ParaFrame, text=' Update CFG ')
+CfgFrame = LabelFrame(ParaFrame, text=' 更新配置 ')
 CfgFrame.grid(row=1, column=1, padx=10, pady=5, sticky=N)
-Button(CfgFrame, text = 'Restore Factory', width = 12, height = 2, borderwidth=2, bg = 'green', \
+Button(CfgFrame, text = '恢复出厂设置', width = 12, height = 2, borderwidth=2, bg = 'green', \
 		command=lambda:restoreCfg()).grid(row=10,column=0, padx=10, pady = 5)
-Button(CfgFrame, text = 'Save as Default', width = 12, height = 2, bg = 'green',\
+Button(CfgFrame, text = '保存作为默认', width = 12, height = 2, bg = 'green',\
 		command=lambda:saveAsDefultCfg(CB.get(), IP.get(), RP.get(), OP.get(), encType.get(), resDefine.get(),\
-		Render.get(), NName.get(), defRecord.get(), imgQ.get())).grid(row=10,column=1,padx=10, pady=5)
+		Render.get(), NName.get(), defRecord.get(), imgQ.get(), Crop.get())).grid(row=10,column=1,padx=10, pady=5)
 
 #auto run
-#reInstall_onvif('0')
-#click_start_onvif(CB.get(), IP.get(), RP.get(), OP.get(), encType.get(), resDefine.get(), \
-#		Render.get(), NName.get(), defRecord.get(), imgQ.get())
+reInstall_onvif('0')
+click_start_onvif(CB.get(), IP.get(), RP.get(), OP.get(), encType.get(), resDefine.get(), \
+		Render.get(), NName.get(), defRecord.get(), imgQ.get(), Crop.get())
 
 root['menu'] = xmenu
 
